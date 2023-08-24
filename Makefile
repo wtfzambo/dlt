@@ -46,10 +46,14 @@ dev: has-poetry
 
 lint:
 	./check-package.sh
+	poetry run black ./ --check
 	poetry run mypy --config-file mypy.ini dlt
 	poetry run flake8 --max-line-length=200 dlt
 	poetry run flake8 --max-line-length=200 tests --exclude tests/reflection/module_cases
 	# $(MAKE) lint-security
+
+format:
+	poetry run black ./
 
 test-and-lint-snippets:
 	poetry run mypy --config-file mypy.ini docs/snippets docs/examples
