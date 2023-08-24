@@ -1,4 +1,17 @@
-from typing import Optional, ClassVar, Iterator, Any, AnyStr, Sequence, Tuple, List, Dict, Callable, Iterable, Type
+from typing import (
+    Optional,
+    ClassVar,
+    Iterator,
+    Any,
+    AnyStr,
+    Sequence,
+    Tuple,
+    List,
+    Dict,
+    Callable,
+    Iterable,
+    Type,
+)
 from copy import deepcopy
 import re
 
@@ -10,7 +23,12 @@ import pyathena
 from pyathena import connect
 from pyathena.connection import Connection
 from pyathena.error import OperationalError, DatabaseError, ProgrammingError, IntegrityError, Error
-from pyathena.formatter import DefaultParameterFormatter, _DEFAULT_FORMATTERS, Formatter, _format_date
+from pyathena.formatter import (
+    DefaultParameterFormatter,
+    _DEFAULT_FORMATTERS,
+    Formatter,
+    _format_date,
+)
 
 from dlt.common import logger
 from dlt.common.data_types import TDataType
@@ -24,9 +42,18 @@ from dlt.common.data_writers.escape import escape_bigquery_identifier
 
 
 from dlt.destinations.typing import DBApi, DBTransaction
-from dlt.destinations.exceptions import DatabaseTerminalException, DatabaseTransientException, DatabaseUndefinedRelation
+from dlt.destinations.exceptions import (
+    DatabaseTerminalException,
+    DatabaseTransientException,
+    DatabaseUndefinedRelation,
+)
 from dlt.destinations.athena import capabilities
-from dlt.destinations.sql_client import SqlClientBase, DBApiCursorImpl, raise_database_error, raise_open_connection_error
+from dlt.destinations.sql_client import (
+    SqlClientBase,
+    DBApiCursorImpl,
+    raise_database_error,
+    raise_open_connection_error,
+)
 from dlt.destinations.typing import DBApiCursor
 from dlt.destinations.job_client_impl import SqlJobClientBase, StorageSchemaInfo
 from dlt.destinations.athena.configuration import AthenaClientConfiguration
@@ -41,7 +68,7 @@ SCT_TO_HIVET: Dict[TDataType, str] = {
     "timestamp": "timestamp",
     "bigint": "bigint",
     "binary": "binary",
-    "decimal": "decimal(%i,%i)"
+    "decimal": "decimal(%i,%i)",
 }
 
 HIVET_TO_SCT: Dict[str, TDataType] = {
@@ -53,7 +80,7 @@ HIVET_TO_SCT: Dict[str, TDataType] = {
     "bigint": "bigint",
     "binary": "binary",
     "varbinary": "binary",
-    "decimal": "decimal"
+    "decimal": "decimal",
 }
 
 
@@ -68,14 +95,12 @@ def _format_pendulum_datetime(formatter: Formatter, escaper: Callable[[str], str
 
 
 class DLTAthenaFormatter(DefaultParameterFormatter):
-
     _INSTANCE: ClassVar["DLTAthenaFormatter"] = None
 
     def __new__(cls: Type["DLTAthenaFormatter"]) -> "DLTAthenaFormatter":
         if cls._INSTANCE:
             return cls._INSTANCE
         return super().__new__(cls)
-
 
     def __init__(self) -> None:
         if DLTAthenaFormatter._INSTANCE:
@@ -85,9 +110,7 @@ class DLTAthenaFormatter(DefaultParameterFormatter):
         formatters[datetime] = _format_pendulum_datetime
         formatters[Date] = _format_date
 
-        super(DefaultParameterFormatter, self).__init__(
-            mappings=formatters, default=None
-        )
+        super(DefaultParameterFormatter, self).__init__(mappings=formatters, default=None)
         DLTAthenaFormatter._INSTANCE = self
 
 
@@ -105,8 +128,8 @@ class DoNothingJob(LoadJob):
         # this part of code should be never reached
         raise NotImplementedError()
 
-class AthenaSQLClient(SqlClientBase[Connection]):
 
+class AthenaSQLClient(SqlClientBase[Connection]):
     capabilities: ClassVar[DestinationCapabilitiesContext] = capabilities()
     dbapi: ClassVar[DBApi] = pyathena
 
@@ -123,7 +146,8 @@ class AthenaSQLClient(SqlClientBase[Connection]):
             schema_name=self.dataset_name,
             s3_staging_dir=self.config.query_result_bucket,
             work_group=self.config.athena_work_group,
-            **native_credentials)
+            **native_credentials,
+        )
         return self._conn
 
     def close_connection(self) -> None:
@@ -157,18 +181,24 @@ class AthenaSQLClient(SqlClientBase[Connection]):
         self.execute_sql(f"DROP DATABASE {self.fully_qualified_ddl_dataset_name()} CASCADE;")
 
     def fully_qualified_dataset_name(self, escape: bool = True) -> str:
-        return self.capabilities.escape_identifier(self.dataset_name) if escape else self.dataset_name
+        return (
+            self.capabilities.escape_identifier(self.dataset_name) if escape else self.dataset_name
+        )
 
     def drop_tables(self, *tables: str) -> None:
         if not tables:
             return
-        statements = [f"DROP TABLE IF EXISTS {self.make_qualified_ddl_table_name(table)};" for table in tables]
+        statements = [
+            f"DROP TABLE IF EXISTS {self.make_qualified_ddl_table_name(table)};" for table in tables
+        ]
         self.execute_fragments(statements)
 
     @contextmanager
     @raise_database_error
     def begin_transaction(self) -> Iterator[DBTransaction]:
-        logger.warning("Athena does not support transactions! Each SQL statement is auto-committed separately.")
+        logger.warning(
+            "Athena does not support transactions! Each SQL statement is auto-committed separately."
+        )
         yield self
 
     @raise_database_error
@@ -197,7 +227,9 @@ class AthenaSQLClient(SqlClientBase[Connection]):
             return DatabaseTransientException(ex)
         return ex
 
-    def execute_sql(self, sql: AnyStr, *args: Any, **kwargs: Any) -> Optional[Sequence[Sequence[Any]]]:
+    def execute_sql(
+        self, sql: AnyStr, *args: Any, **kwargs: Any
+    ) -> Optional[Sequence[Sequence[Any]]]:
         with self.execute_query(sql, *args, **kwargs) as curr:
             if curr.description is None:
                 return None
@@ -206,13 +238,17 @@ class AthenaSQLClient(SqlClientBase[Connection]):
                 return f
 
     @staticmethod
-    def _convert_to_old_pyformat(new_style_string: str, args: Tuple[Any, ...]) -> Tuple[str, Dict[str, Any]]:
+    def _convert_to_old_pyformat(
+        new_style_string: str, args: Tuple[Any, ...]
+    ) -> Tuple[str, Dict[str, Any]]:
         # create a list of keys
-        keys = ["arg"+str(i) for i, _ in enumerate(args)]
+        keys = ["arg" + str(i) for i, _ in enumerate(args)]
         # create an old style string and replace placeholders
-        old_style_string, count = re.subn(r"%s", lambda _: "%(" + keys.pop(0) + ")s", new_style_string)
+        old_style_string, count = re.subn(
+            r"%s", lambda _: "%(" + keys.pop(0) + ")s", new_style_string
+        )
         # create a dictionary mapping keys to args
-        mapping = dict(zip(["arg"+str(i) for i, _ in enumerate(args)], args))
+        mapping = dict(zip(["arg" + str(i) for i, _ in enumerate(args)], args))
         # raise if there is a mismatch between args and string
         if count != len(args):
             raise DatabaseTransientException(OperationalError())
@@ -247,19 +283,17 @@ class AthenaSQLClient(SqlClientBase[Connection]):
 
 
 class AthenaClient(SqlJobClientBase):
-
     capabilities: ClassVar[DestinationCapabilitiesContext] = capabilities()
 
     def __init__(self, schema: Schema, config: AthenaClientConfiguration) -> None:
         # verify if staging layout is valid for Athena
         # this will raise if the table prefix is not properly defined
         # we actually that {table_name} is first, no {schema_name} is allowed
-        self.table_prefix_layout = path_utils.get_table_prefix_layout(config.staging_config.layout, [])
-
-        sql_client = AthenaSQLClient(
-            config.normalize_dataset_name(schema),
-            config
+        self.table_prefix_layout = path_utils.get_table_prefix_layout(
+            config.staging_config.layout, []
         )
+
+        sql_client = AthenaSQLClient(config.normalize_dataset_name(schema), config)
         super().__init__(schema, config, sql_client)
         self.sql_client: AthenaSQLClient = sql_client  # type: ignore
         self.config: AthenaClientConfiguration = config
@@ -277,17 +311,22 @@ class AthenaClient(SqlJobClientBase):
         return SCT_TO_HIVET[sc_t]
 
     @classmethod
-    def _from_db_type(cls, hive_t: str, precision: Optional[int], scale: Optional[int]) -> TDataType:
+    def _from_db_type(
+        cls, hive_t: str, precision: Optional[int], scale: Optional[int]
+    ) -> TDataType:
         for key, val in HIVET_TO_SCT.items():
             if hive_t.startswith(key):
                 return val
         return None
 
     def _get_column_def_sql(self, c: TColumnSchema) -> str:
-        return f"{self.sql_client.escape_ddl_identifier(c['name'])} {self._to_db_type(c['data_type'])}"
+        return (
+            f"{self.sql_client.escape_ddl_identifier(c['name'])} {self._to_db_type(c['data_type'])}"
+        )
 
-    def _get_table_update_sql(self, table_name: str, new_columns: Sequence[TColumnSchema], generate_alter: bool) -> List[str]:
-
+    def _get_table_update_sql(
+        self, table_name: str, new_columns: Sequence[TColumnSchema], generate_alter: bool
+    ) -> List[str]:
         bucket = self.config.staging_config.bucket_url
         dataset = self.sql_client.dataset_name
         sql: List[str] = []

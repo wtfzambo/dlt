@@ -23,7 +23,7 @@ SCT_TO_PGT: Dict[TDataType, str] = {
     "timestamp": "TIMESTAMP WITH TIME ZONE",
     "bigint": "BIGINT",
     "binary": "BLOB",
-    "decimal": "DECIMAL(%i,%i)"
+    "decimal": "DECIMAL(%i,%i)",
 }
 
 PGT_TO_SCT: Dict[str, TDataType] = {
@@ -35,12 +35,10 @@ PGT_TO_SCT: Dict[str, TDataType] = {
     "TIMESTAMP WITH TIME ZONE": "timestamp",
     "BIGINT": "bigint",
     "BLOB": "binary",
-    "DECIMAL": "decimal"
+    "DECIMAL": "decimal",
 }
 
-HINT_TO_POSTGRES_ATTR: Dict[TColumnHint, str] = {
-    "unique": "UNIQUE"
-}
+HINT_TO_POSTGRES_ATTR: Dict[TColumnHint, str] = {"unique": "UNIQUE"}
 
 
 class DuckDbCopyJob(LoadJob, FollowupJob):
@@ -56,8 +54,9 @@ class DuckDbCopyJob(LoadJob, FollowupJob):
             raise ValueError(file_path)
         qualified_table_name = sql_client.make_qualified_table_name(table_name)
         with sql_client.begin_transaction():
-            sql_client.execute_sql(f"COPY {qualified_table_name} FROM '{file_path}' ( FORMAT {source_format} );")
-
+            sql_client.execute_sql(
+                f"COPY {qualified_table_name} FROM '{file_path}' ( FORMAT {source_format} );"
+            )
 
     def state(self) -> TLoadJobState:
         return "completed"
@@ -65,15 +64,12 @@ class DuckDbCopyJob(LoadJob, FollowupJob):
     def exception(self) -> str:
         raise NotImplementedError()
 
-class DuckDbClient(InsertValuesJobClient):
 
+class DuckDbClient(InsertValuesJobClient):
     capabilities: ClassVar[DestinationCapabilitiesContext] = capabilities()
 
     def __init__(self, schema: Schema, config: DuckDbClientConfiguration) -> None:
-        sql_client = DuckDbSqlClient(
-            config.normalize_dataset_name(schema),
-            config.credentials
-        )
+        sql_client = DuckDbSqlClient(config.normalize_dataset_name(schema), config.credentials)
         super().__init__(schema, config, sql_client)
         self.config: DuckDbClientConfiguration = config
         self.sql_client: DuckDbSqlClient = sql_client  # type: ignore
@@ -86,9 +82,15 @@ class DuckDbClient(InsertValuesJobClient):
         return job
 
     def _get_column_def_sql(self, c: TColumnSchema) -> str:
-        hints_str = " ".join(self.active_hints.get(h, "") for h in self.active_hints.keys() if c.get(h, False) is True)
+        hints_str = " ".join(
+            self.active_hints.get(h, "")
+            for h in self.active_hints.keys()
+            if c.get(h, False) is True
+        )
         column_name = self.capabilities.escape_identifier(c["name"])
-        return f"{column_name} {self._to_db_type(c['data_type'])} {hints_str} {self._gen_not_null(c['nullable'])}"
+        return (
+            f"{column_name} {self._to_db_type(c['data_type'])} {hints_str} {self._gen_not_null(c['nullable'])}"
+        )
 
     @classmethod
     def _to_db_type(cls, sc_t: TDataType) -> str:

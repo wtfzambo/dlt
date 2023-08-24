@@ -19,7 +19,12 @@ from dlt.common.typing import DictStrAny, StrStr, TSecretValue
 
 from dlt.pipeline.exceptions import PipelineStepFailed
 from dlt.pipeline.pipeline import Pipeline
-from dlt.pipeline.trace import PipelineTrace, SerializableResolvedValueTrace, describe_extract_data, load_trace
+from dlt.pipeline.trace import (
+    PipelineTrace,
+    SerializableResolvedValueTrace,
+    describe_extract_data,
+    load_trace,
+)
 from dlt.pipeline.track import slack_notify_load_success
 from dlt.extract.source import DltResource, DltSource
 from dlt.extract.pipe import Pipe
@@ -27,11 +32,14 @@ from dlt.extract.pipe import Pipe
 from tests.utils import start_test_telemetry
 from tests.common.configuration.utils import toml_providers, environment
 
+
 def test_create_trace(toml_providers: ConfigProvidersContext) -> None:
-
     @dlt.source
-    def inject_tomls(api_type = dlt.config.value, credentials: CredentialsConfiguration = dlt.secrets.value, secret_value: TSecretValue = "123"):
-
+    def inject_tomls(
+        api_type=dlt.config.value,
+        credentials: CredentialsConfiguration = dlt.secrets.value,
+        secret_value: TSecretValue = "123",
+    ):
         @dlt.resource
         def data():
             yield [1, 2, 3]
@@ -78,7 +86,6 @@ def test_create_trace(toml_providers: ConfigProvidersContext) -> None:
     # extract with exception
     @dlt.source
     def async_exception(max_range=1):
-
         async def get_val(v):
             await asyncio.sleep(0.1)
             if v % 3 == 0:
@@ -87,7 +94,7 @@ def test_create_trace(toml_providers: ConfigProvidersContext) -> None:
 
         @dlt.resource
         def data():
-            yield from [get_val(v) for v in range(1,max_range)]
+            yield from [get_val(v) for v in range(1, max_range)]
 
         return data()
 
@@ -148,7 +155,7 @@ def test_create_trace(toml_providers: ConfigProvidersContext) -> None:
 
 def test_save_load_trace() -> None:
     os.environ["COMPLETED_PROB"] = "1.0"
-    info = dlt.pipeline().run([1,2,3], table_name="data", destination="dummy")
+    info = dlt.pipeline().run([1, 2, 3], table_name="data", destination="dummy")
     pipeline = dlt.pipeline()
     # will get trace from working dir
     trace = pipeline.last_trace
@@ -190,20 +197,26 @@ def test_save_load_trace() -> None:
 def test_disable_trace(environment: StrStr) -> None:
     environment["ENABLE_RUNTIME_TRACE"] = "false"
     environment["COMPLETED_PROB"] = "1.0"
-    dlt.pipeline().run([1,2,3], table_name="data", destination="dummy")
+    dlt.pipeline().run([1, 2, 3], table_name="data", destination="dummy")
     assert dlt.pipeline().last_trace is None
 
 
 def test_trace_on_restore_state(environment: StrStr) -> None:
     environment["COMPLETED_PROB"] = "1.0"
 
-    def _sync_destination_patch(self: Pipeline, destination: str = None, staging: str = None, dataset_name: str = None):
+    def _sync_destination_patch(
+        self: Pipeline, destination: str = None, staging: str = None, dataset_name: str = None
+    ):
         # just wipe the pipeline simulating deleted dataset
         self._wipe_working_folder()
-        self._configure(self._schema_storage_config.export_schema_path, self._schema_storage_config.import_schema_path, False)
+        self._configure(
+            self._schema_storage_config.export_schema_path,
+            self._schema_storage_config.import_schema_path,
+            False,
+        )
 
-    with patch.object(Pipeline, 'sync_destination', _sync_destination_patch):
-        dlt.pipeline().run([1,2,3], table_name="data", destination="dummy")
+    with patch.object(Pipeline, "sync_destination", _sync_destination_patch):
+        dlt.pipeline().run([1, 2, 3], table_name="data", destination="dummy")
         assert len(dlt.pipeline().last_trace.steps) == 4
 
 
@@ -213,13 +226,15 @@ def test_load_none_trace() -> None:
 
 
 def test_trace_telemetry() -> None:
-    with patch("dlt.common.runtime.sentry.before_send", _mock_sentry_before_send), patch("dlt.common.runtime.segment.before_send", _mock_segment_before_send):
+    with patch("dlt.common.runtime.sentry.before_send", _mock_sentry_before_send), patch(
+        "dlt.common.runtime.segment.before_send", _mock_segment_before_send
+    ):
         start_test_telemetry()
 
         SEGMENT_SENT_ITEMS.clear()
         SENTRY_SENT_ITEMS.clear()
         # default dummy fails all files
-        dlt.pipeline().run([1,2,3], table_name="data", destination="dummy")
+        dlt.pipeline().run([1, 2, 3], table_name="data", destination="dummy")
         # we should have 4 segment items
         assert len(SEGMENT_SENT_ITEMS) == 4
         expected_steps = ["extract", "normalize", "load", "run"]
@@ -256,32 +271,48 @@ def test_trace_telemetry() -> None:
         assert isinstance(event["properties"]["elapsed"], float)
         # check extract info
         if step == "extract":
-            assert event["properties"]["extract_data"] == [{"name": "data", "data_type": "resource"}]
+            assert event["properties"]["extract_data"] == [
+                {"name": "data", "data_type": "resource"}
+            ]
         # we didn't log any errors
         assert len(SENTRY_SENT_ITEMS) == 0
 
 
 def test_extract_data_describe() -> None:
     schema = Schema("test")
-    assert describe_extract_data(DltSource("sss_extract", "sect", schema)) == [{"name": "sss_extract", "data_type": "source"}]
-    assert describe_extract_data(DltResource(Pipe("rrr_extract"), None, False)) == [{"name": "rrr_extract", "data_type": "resource"}]
-    assert describe_extract_data([DltSource("sss_extract", "sect", schema)]) == [{"name": "sss_extract", "data_type": "source"}]
-    assert describe_extract_data([DltResource(Pipe("rrr_extract"), None, False)]) == [{"name": "rrr_extract", "data_type": "resource"}]
+    assert describe_extract_data(DltSource("sss_extract", "sect", schema)) == [
+        {"name": "sss_extract", "data_type": "source"}
+    ]
+    assert describe_extract_data(DltResource(Pipe("rrr_extract"), None, False)) == [
+        {"name": "rrr_extract", "data_type": "resource"}
+    ]
+    assert describe_extract_data([DltSource("sss_extract", "sect", schema)]) == [
+        {"name": "sss_extract", "data_type": "source"}
+    ]
+    assert describe_extract_data([DltResource(Pipe("rrr_extract"), None, False)]) == [
+        {"name": "rrr_extract", "data_type": "resource"}
+    ]
     assert describe_extract_data(
         [DltResource(Pipe("rrr_extract"), None, False), DltSource("sss_extract", "sect", schema)]
-        ) == [
-            {"name": "rrr_extract", "data_type": "resource"}, {"name": "sss_extract", "data_type": "source"}
-        ]
+    ) == [
+        {"name": "rrr_extract", "data_type": "resource"},
+        {"name": "sss_extract", "data_type": "source"},
+    ]
     assert describe_extract_data([{"a": "b"}]) == [{"name": "", "data_type": "dict"}]
     from pandas import DataFrame
+
     # we assume that List content has same type
-    assert describe_extract_data([DataFrame(), {"a": "b"}]) == [{"name": "", "data_type": "DataFrame"}]
+    assert describe_extract_data([DataFrame(), {"a": "b"}]) == [
+        {"name": "", "data_type": "DataFrame"}
+    ]
     # first unnamed element in the list breaks checking info
     assert describe_extract_data(
-        [DltResource(Pipe("rrr_extract"), None, False), DataFrame(), DltSource("sss_extract", "sect", schema)]
-        ) == [
-            {"name": "rrr_extract", "data_type": "resource"}, {"name": "", "data_type": "DataFrame"}
+        [
+            DltResource(Pipe("rrr_extract"), None, False),
+            DataFrame(),
+            DltSource("sss_extract", "sect", schema),
         ]
+    ) == [{"name": "rrr_extract", "data_type": "resource"}, {"name": "", "data_type": "DataFrame"}]
 
 
 def test_slack_hook(environment: StrStr) -> None:
@@ -293,8 +324,15 @@ def test_slack_hook(environment: StrStr) -> None:
     environment["RUNTIME__SLACK_INCOMING_HOOK"] = hook_url
     with requests_mock.mock() as m:
         m.post(hook_url, json={})
-        load_info = dlt.pipeline().run([1,2,3], table_name="data", destination="dummy")
-        assert slack_notify_load_success(load_info.pipeline.runtime_config.slack_incoming_hook, load_info, load_info.pipeline.last_trace) == 200
+        load_info = dlt.pipeline().run([1, 2, 3], table_name="data", destination="dummy")
+        assert (
+            slack_notify_load_success(
+                load_info.pipeline.runtime_config.slack_incoming_hook,
+                load_info,
+                load_info.pipeline.last_trace,
+            )
+            == 200
+        )
     assert m.called
     message = m.last_request.json()
     assert "rudolfix" in message["text"]
@@ -304,9 +342,16 @@ def test_slack_hook(environment: StrStr) -> None:
 def test_broken_slack_hook(environment: StrStr) -> None:
     environment["COMPLETED_PROB"] = "1.0"
     environment["RUNTIME__SLACK_INCOMING_HOOK"] = "http://localhost:22"
-    load_info = dlt.pipeline().run([1,2,3], table_name="data", destination="dummy")
+    load_info = dlt.pipeline().run([1, 2, 3], table_name="data", destination="dummy")
     # connection error
-    assert slack_notify_load_success(load_info.pipeline.runtime_config.slack_incoming_hook, load_info, load_info.pipeline.last_trace) == -1
+    assert (
+        slack_notify_load_success(
+            load_info.pipeline.runtime_config.slack_incoming_hook,
+            load_info,
+            load_info.pipeline.last_trace,
+        )
+        == -1
+    )
     # pipeline = dlt.pipeline()
     # assert pipeline.last_trace is not None
     # assert pipeline._trace is None
@@ -317,20 +362,27 @@ def test_broken_slack_hook(environment: StrStr) -> None:
     # assert run_step.step_exception is None
 
 
-def _find_resolved_value(resolved: List[SerializableResolvedValueTrace], key: str, sections: List[str]) -> SerializableResolvedValueTrace:
+def _find_resolved_value(
+    resolved: List[SerializableResolvedValueTrace], key: str, sections: List[str]
+) -> SerializableResolvedValueTrace:
     return next((v for v in resolved if v.key == key and v.sections == sections), None)
 
 
 SEGMENT_SENT_ITEMS = []
+
+
 def _mock_segment_before_send(event: DictStrAny) -> DictStrAny:
     SEGMENT_SENT_ITEMS.append(event)
     return event
 
 
 SENTRY_SENT_ITEMS = []
+
+
 def _mock_sentry_before_send(event: DictStrAny, _unused_hint: Any = None) -> DictStrAny:
     SENTRY_SENT_ITEMS.append(event)
     return event
+
 
 def assert_trace_printable(trace: PipelineTrace) -> None:
     str(trace)

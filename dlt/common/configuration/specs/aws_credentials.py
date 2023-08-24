@@ -2,7 +2,11 @@ from typing import Optional, Dict, Any
 
 from dlt.common.exceptions import MissingDependencyException
 from dlt.common.typing import TSecretStrValue
-from dlt.common.configuration.specs import CredentialsConfiguration, CredentialsWithDefault, configspec
+from dlt.common.configuration.specs import (
+    CredentialsConfiguration,
+    CredentialsWithDefault,
+    configspec,
+)
 from dlt.common.configuration.specs.exceptions import InvalidBoto3Session
 from dlt import version
 
@@ -22,7 +26,7 @@ class AwsCredentialsWithoutDefaults(CredentialsConfiguration):
             key=self.aws_access_key_id,
             secret=self.aws_secret_access_key,
             token=self.aws_session_token,
-            profile=self.profile_name
+            profile=self.profile_name,
         )
 
     def to_native_representation(self) -> Dict[str, Optional[str]]:
@@ -32,7 +36,6 @@ class AwsCredentialsWithoutDefaults(CredentialsConfiguration):
 
 @configspec
 class AwsCredentials(AwsCredentialsWithoutDefaults, CredentialsWithDefault):
-
     def on_partial(self) -> None:
         # Try get default credentials
         session = self._to_session()
@@ -43,12 +46,15 @@ class AwsCredentials(AwsCredentialsWithoutDefaults, CredentialsWithDefault):
         try:
             import boto3
         except ModuleNotFoundError:
-            raise MissingDependencyException(self.__class__.__name__, [f"{version.DLT_PKG_NAME}[s3]"])
+            raise MissingDependencyException(
+                self.__class__.__name__, [f"{version.DLT_PKG_NAME}[s3]"]
+            )
         return boto3.Session(**self.to_native_representation())  # type: ignore
 
     def _from_session(self, session: Any) -> Any:
         """Sets the credentials properties from boto3 `session` and return session's credentials if found"""
         import boto3
+
         assert isinstance(session, boto3.Session)
         # NOTE: we do not set profile name from boto3 session
         # we either pass it explicitly in `_to_session` so we know it is identical
@@ -69,6 +75,7 @@ class AwsCredentials(AwsCredentialsWithoutDefaults, CredentialsWithDefault):
         """Import external boto session"""
         try:
             import boto3
+
             if isinstance(native_value, boto3.Session):
                 if self._from_session(native_value):
                     self.__is_resolved__ = True

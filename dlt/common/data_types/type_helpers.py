@@ -137,7 +137,7 @@ def coerce_value(to_type: TDataType, from_type: TDataType, value: Any) -> Any:
             except binascii.Error:
                 raise ValueError(value)
         if from_type == "bigint":
-            return value.to_bytes((value.bit_length() + 7) // 8, 'little')
+            return value.to_bytes((value.bit_length() + 7) // 8, "little")
 
     if to_type == "bigint":
         if from_type in ["wei", "decimal", "double"]:

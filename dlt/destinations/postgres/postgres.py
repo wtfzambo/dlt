@@ -26,7 +26,7 @@ SCT_TO_PGT: Dict[TDataType, str] = {
     "date": "date",
     "bigint": "bigint",
     "binary": "bytea",
-    "decimal": "numeric(%i,%i)"
+    "decimal": "numeric(%i,%i)",
 }
 
 PGT_TO_SCT: Dict[str, TDataType] = {
@@ -38,17 +38,17 @@ PGT_TO_SCT: Dict[str, TDataType] = {
     "date": "date",
     "bigint": "bigint",
     "bytea": "binary",
-    "numeric": "decimal"
+    "numeric": "decimal",
 }
 
-HINT_TO_POSTGRES_ATTR: Dict[TColumnHint, str] = {
-    "unique": "UNIQUE"
-}
+HINT_TO_POSTGRES_ATTR: Dict[TColumnHint, str] = {"unique": "UNIQUE"}
+
 
 class PostgresStagingCopyJob(SqlStagingCopyJob):
-
     @classmethod
-    def generate_sql(cls, table_chain: Sequence[TTableSchema], sql_client: SqlClientBase[Any]) -> List[str]:
+    def generate_sql(
+        cls, table_chain: Sequence[TTableSchema], sql_client: SqlClientBase[Any]
+    ) -> List[str]:
         sql: List[str] = []
         for table in table_chain:
             with sql_client.with_staging_dataset(staging=True):
@@ -57,29 +57,35 @@ class PostgresStagingCopyJob(SqlStagingCopyJob):
             # drop destination table
             sql.append(f"DROP TABLE IF EXISTS {table_name};")
             # moving staging table to destination schema
-            sql.append(f"ALTER TABLE {staging_table_name} SET SCHEMA {sql_client.fully_qualified_dataset_name()};")
+            sql.append(
+                f"ALTER TABLE {staging_table_name} SET SCHEMA"
+                f" {sql_client.fully_qualified_dataset_name()};"
+            )
             # recreate staging table
             sql.append(f"CREATE TABLE {staging_table_name} (like {table_name} including all);")
         return sql
 
-class PostgresClient(InsertValuesJobClient):
 
+class PostgresClient(InsertValuesJobClient):
     capabilities: ClassVar[DestinationCapabilitiesContext] = capabilities()
 
     def __init__(self, schema: Schema, config: PostgresClientConfiguration) -> None:
-        sql_client = Psycopg2SqlClient(
-            config.normalize_dataset_name(schema),
-            config.credentials
-        )
+        sql_client = Psycopg2SqlClient(config.normalize_dataset_name(schema), config.credentials)
         super().__init__(schema, config, sql_client)
         self.config: PostgresClientConfiguration = config
         self.sql_client = sql_client
         self.active_hints = HINT_TO_POSTGRES_ATTR if self.config.create_indexes else {}
 
     def _get_column_def_sql(self, c: TColumnSchema) -> str:
-        hints_str = " ".join(self.active_hints.get(h, "") for h in self.active_hints.keys() if c.get(h, False) is True)
+        hints_str = " ".join(
+            self.active_hints.get(h, "")
+            for h in self.active_hints.keys()
+            if c.get(h, False) is True
+        )
         column_name = self.capabilities.escape_identifier(c["name"])
-        return f"{column_name} {self._to_db_type(c['data_type'])} {hints_str} {self._gen_not_null(c['nullable'])}"
+        return (
+            f"{column_name} {self._to_db_type(c['data_type'])} {hints_str} {self._gen_not_null(c['nullable'])}"
+        )
 
     def _create_optimized_replace_job(self, table_chain: Sequence[TTableSchema]) -> NewLoadJob:
         return PostgresStagingCopyJob.from_table_chain(table_chain, self.sql_client)
@@ -101,4 +107,3 @@ class PostgresClient(InsertValuesJobClient):
             if (precision, scale) == cls.capabilities.wei_precision:
                 return "wei"
         return PGT_TO_SCT.get(pq_t, "text")
-

@@ -11,9 +11,17 @@ from dlt.common.wei import EVM_DECIMAL_PRECISION
 from dlt.destinations.athena.configuration import AthenaClientConfiguration
 from dlt.common.destination.reference import JobClientBase, DestinationClientConfiguration
 
-@with_config(spec=AthenaClientConfiguration, sections=(known_sections.DESTINATION, "athena",))
+
+@with_config(
+    spec=AthenaClientConfiguration,
+    sections=(
+        known_sections.DESTINATION,
+        "athena",
+    ),
+)
 def _configure(config: AthenaClientConfiguration = config.value) -> AthenaClientConfiguration:
     return config
+
 
 def capabilities() -> DestinationCapabilitiesContext:
     caps = DestinationCapabilitiesContext()
@@ -39,9 +47,12 @@ def capabilities() -> DestinationCapabilitiesContext:
     return caps
 
 
-def client(schema: Schema, initial_config: DestinationClientConfiguration = config.value) -> JobClientBase:
+def client(
+    schema: Schema, initial_config: DestinationClientConfiguration = config.value
+) -> JobClientBase:
     # import client when creating instance so capabilities and config specs can be accessed without dependencies installed
     from dlt.destinations.athena.athena import AthenaClient
+
     return AthenaClient(schema, _configure(initial_config))  # type: ignore
 
 

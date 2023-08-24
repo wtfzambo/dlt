@@ -11,7 +11,13 @@ from dlt.common.arithmetics import DEFAULT_NUMERIC_PRECISION, DEFAULT_NUMERIC_SC
 from dlt.destinations.duckdb.configuration import DuckDbClientConfiguration
 
 
-@with_config(spec=DuckDbClientConfiguration, sections=(known_sections.DESTINATION, "duckdb",))
+@with_config(
+    spec=DuckDbClientConfiguration,
+    sections=(
+        known_sections.DESTINATION,
+        "duckdb",
+    ),
+)
 def _configure(config: DuckDbClientConfiguration = config.value) -> DuckDbClientConfiguration:
     return config
 
@@ -40,7 +46,9 @@ def capabilities() -> DestinationCapabilitiesContext:
     return caps
 
 
-def client(schema: Schema, initial_config: DestinationClientConfiguration = config.value) -> JobClientBase:
+def client(
+    schema: Schema, initial_config: DestinationClientConfiguration = config.value
+) -> JobClientBase:
     # import client when creating instance so capabilities and config specs can be accessed without dependencies installed
     from dlt.destinations.duckdb.duck import DuckDbClient
 

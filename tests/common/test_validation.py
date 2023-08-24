@@ -33,28 +33,12 @@ class TTestRecord(TypedDict):
     f_seq_literal: Sequence[Optional[TLiteral]]
 
 
-TEST_COL = {
-        "name": "col1",
-        "data_type": "bigint",
-        "nullable": False
-    }
+TEST_COL = {"name": "col1", "data_type": "bigint", "nullable": False}
 
 TEST_COL_LIST = [
-    {
-        "name": "col1",
-        "data_type": "bigint",
-        "nullable": False
-    },
-    {
-        "name": "col2",
-        "data_type": "double",
-        "nullable": False
-    },
-    {
-        "name": "col3",
-        "data_type": "bool",
-        "nullable": False
-    }
+    {"name": "col1", "data_type": "bigint", "nullable": False},
+    {"name": "col2", "data_type": "double", "nullable": False},
+    {"name": "col3", "data_type": "bool", "nullable": False},
 ]
 
 TEST_DOC: TTestRecord = {
@@ -67,15 +51,16 @@ TEST_DOC: TTestRecord = {
     "f_seq_simple": ["x", "y"],
     "f_seq_optional_str": ["opt1", "opt2"],
     "f_seq_of_optional_int": [1, 2, 3],
-    "f_list_of_dict":  TEST_COL_LIST,
+    "f_list_of_dict": TEST_COL_LIST,
     "f_dict_simple": {"col1": "map_me"},
     "f_map_simple": {"col1": "map_me"},
     "f_map_of_dict": {"col1": deepcopy(TEST_COL)},
     "f_column": deepcopy(TEST_COL),
     "f_literal": "uno",
     "f_literal_optional": "dos",
-    "f_seq_literal": ["uno", "dos", "tres"]
+    "f_seq_literal": ["uno", "dos", "tres"],
 }
+
 
 @pytest.fixture
 def test_doc() -> TTestRecord:
@@ -83,14 +68,13 @@ def test_doc() -> TTestRecord:
 
 
 def test_validate_schema_cases() -> None:
-    with open("tests/common/cases/schemas/eth/ethereum_schema_v4.yml", mode="r", encoding="utf-8") as f:
+    with open(
+        "tests/common/cases/schemas/eth/ethereum_schema_v4.yml", mode="r", encoding="utf-8"
+    ) as f:
         schema_dict: TStoredSchema = yaml.safe_load(f)
 
     validate_dict_ignoring_xkeys(
-        spec=TStoredSchema,
-        doc=schema_dict,
-        path=".",
-        validator_f=simple_regex_validator
+        spec=TStoredSchema, doc=schema_dict, path=".", validator_f=simple_regex_validator
     )
 
     # with open("tests/common/cases/schemas/rasa/event.schema.json") as f:

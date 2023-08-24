@@ -17,7 +17,9 @@ class InsertValuesLoadJob(LoadJob, FollowupJob):
         self._sql_client = sql_client
         # insert file content immediately
         with self._sql_client.begin_transaction():
-            for fragments in self._insert(sql_client.make_qualified_table_name(table_name), file_path):
+            for fragments in self._insert(
+                sql_client.make_qualified_table_name(table_name), file_path
+            ):
                 self._sql_client.execute_fragments(fragments)
 
     def state(self) -> TLoadJobState:
@@ -67,7 +69,6 @@ class InsertValuesLoadJob(LoadJob, FollowupJob):
 
 
 class InsertValuesJobClient(SqlJobClientWithStaging):
-
     def restore_file_load(self, file_path: str) -> LoadJob:
         """Returns a completed SqlLoadJob or InsertValuesJob
 
@@ -101,4 +102,3 @@ class InsertValuesJobClient(SqlJobClientWithStaging):
     # def _get_out_table_constrains_sql(self, t: TTableSchema) -> str:
     #     # set non unique indexes
     #     pass
-

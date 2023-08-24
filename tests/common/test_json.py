@@ -158,7 +158,10 @@ def test_json_decimals(json_impl: SupportsJson) -> None:
     # serialize out of local context
     s = json_impl.dumps(doc)
     # full precision. you need to quantize yourself if you need it
-    assert s == '{"decimal":"99999999999999999999999999999999999999999999999999999999999999999999999999.999"}'
+    assert (
+        s
+        == '{"decimal":"99999999999999999999999999999999999999999999999999999999999999999999999999.999"}'
+    )
 
 
 @pytest.mark.parametrize("json_impl", _JSON_IMPL)
@@ -192,18 +195,27 @@ def test_json_pendulum(json_impl: SupportsJson) -> None:
 
 @pytest.mark.parametrize("json_impl", _JSON_IMPL)
 def test_json_named_tuple(json_impl: SupportsJson) -> None:
-    assert json_impl.dumps(NamedTupleTest("STR", Decimal("1.3333"))) == '{"str_field":"STR","dec_field":"1.3333"}'
+    assert (
+        json_impl.dumps(NamedTupleTest("STR", Decimal("1.3333")))
+        == '{"str_field":"STR","dec_field":"1.3333"}'
+    )
     with io.BytesIO() as b:
         json_impl.typed_dump(NamedTupleTest("STR", Decimal("1.3333")), b)
-        assert b.getvalue().decode("utf-8") == '{"str_field":"STR","dec_field":"\uF0261.3333"}'
+        assert b.getvalue().decode("utf-8") == '{"str_field":"STR","dec_field":"\uf0261.3333"}'
 
 
 @pytest.mark.parametrize("json_impl", _JSON_IMPL)
 def test_data_class(json_impl: SupportsJson) -> None:
-    assert json_impl.dumps(DataClassTest(str_field="AAA")) == '{"str_field":"AAA","int_field":5,"dec_field":"0.5"}'
+    assert (
+        json_impl.dumps(DataClassTest(str_field="AAA"))
+        == '{"str_field":"AAA","int_field":5,"dec_field":"0.5"}'
+    )
     with io.BytesIO() as b:
         json_impl.typed_dump(DataClassTest(str_field="AAA"), b)
-        assert b.getvalue().decode("utf-8") == '{"str_field":"AAA","int_field":5,"dec_field":"\uF0260.5"}'
+        assert (
+            b.getvalue().decode("utf-8")
+            == '{"str_field":"AAA","int_field":5,"dec_field":"\uf0260.5"}'
+        )
 
 
 @pytest.mark.parametrize("json_impl", _JSON_IMPL)
@@ -239,7 +251,7 @@ def test_json_typed_encode(json_impl: SupportsJson) -> None:
     assert d["decimal"][0] == _DECIMAL
     assert d["wei"][0] == _WEI
     # decode all
-    d_d = {k: custom_pua_decode(v) for k,v in d.items()}
+    d_d = {k: custom_pua_decode(v) for k, v in d.items()}
     assert d_d == JSON_TYPED_DICT
 
 
@@ -253,6 +265,6 @@ def test_load_and_compare_all_impls() -> None:
 
     # same docs, same output
     for idx in range(0, len(docs) - 1):
-        assert docs[idx] == docs[idx+1]
-        assert dump_s[idx] == dump_s[idx+1]
-        assert dump_b[idx] == dump_b[idx+1]
+        assert docs[idx] == docs[idx + 1]
+        assert dump_s[idx] == dump_s[idx + 1]
+        assert dump_b[idx] == dump_b[idx + 1]

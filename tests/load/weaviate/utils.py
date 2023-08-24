@@ -69,6 +69,7 @@ def delete_classes(p, class_list):
     for class_name in class_list:
         db_client.schema.delete_class(class_name)
 
+
 def drop_active_pipeline_data() -> None:
     def schema_has_classes(client):
         schema = client.db_client.schema.get()

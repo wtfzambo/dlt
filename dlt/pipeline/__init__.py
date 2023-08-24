@@ -118,7 +118,11 @@ def pipeline(
         pipelines_dir = get_dlt_pipelines_dir()
 
     destination = DestinationReference.from_name(destination or kwargs["destination_name"])
-    staging = DestinationReference.from_name(staging or kwargs.get("staging_name", None)) if staging is not None else None
+    staging = (
+        DestinationReference.from_name(staging or kwargs.get("staging_name", None))
+        if staging is not None
+        else None
+    )
 
     progress = collector_from_name(progress)
     # create new pipeline instance
@@ -136,7 +140,8 @@ def pipeline(
         progress,
         False,
         last_config(**kwargs),
-        kwargs["runtime"])
+        kwargs["runtime"],
+    )
     # set it as current pipeline
     p.activate()
     return p
@@ -159,7 +164,22 @@ def attach(
         pipelines_dir = get_dlt_pipelines_dir()
     progress = collector_from_name(progress)
     # create new pipeline instance
-    p = Pipeline(pipeline_name, pipelines_dir, pipeline_salt, None, None, None, credentials, None, None, full_refresh, progress, True, last_config(**kwargs), kwargs["runtime"])
+    p = Pipeline(
+        pipeline_name,
+        pipelines_dir,
+        pipeline_salt,
+        None,
+        None,
+        None,
+        credentials,
+        None,
+        None,
+        full_refresh,
+        progress,
+        True,
+        last_config(**kwargs),
+        kwargs["runtime"],
+    )
     # set it as current pipeline
     p.activate()
     return p
@@ -235,11 +255,13 @@ def run(
         table_name=table_name,
         write_disposition=write_disposition,
         columns=columns,
-        schema=schema
+        schema=schema,
     )
+
 
 # plug default tracking module
 from dlt.pipeline import trace, track
+
 trace.TRACKING_MODULE = track
 
 # setup default pipeline in the container

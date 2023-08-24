@@ -9,7 +9,6 @@ from tests.extract.utils import expect_extracted_file
 
 
 def test_extract_select_tables() -> None:
-
     def expect_tables(resource: DltResource) -> dlt.Schema:
         # delete files
         clean_test_storage()
@@ -30,9 +29,8 @@ def test_extract_select_tables() -> None:
         storage.commit_extract_files(extract_id)
         # check resulting files
         assert len(storage.list_files_to_normalize_sorted()) == 2
-        expect_extracted_file(storage, "selectables", "odd_table", json.dumps([1,3,5,7,9]))
-        expect_extracted_file(storage, "selectables", "even_table", json.dumps([0,2,4,6,8]))
-
+        expect_extracted_file(storage, "selectables", "odd_table", json.dumps([1, 3, 5, 7, 9]))
+        expect_extracted_file(storage, "selectables", "even_table", json.dumps([0, 2, 4, 6, 8]))
 
         # delete files
         clean_test_storage()
@@ -49,7 +47,7 @@ def test_extract_select_tables() -> None:
             assert len(partials) == 1
         storage.commit_extract_files(extract_id)
         assert len(storage.list_files_to_normalize_sorted()) == 1
-        expect_extracted_file(storage, "selectables", "odd_table", json.dumps([1,3,5,7,9]))
+        expect_extracted_file(storage, "selectables", "odd_table", json.dumps([1, 3, 5, 7, 9]))
 
         return schema
 
@@ -68,7 +66,7 @@ def test_extract_select_tables() -> None:
 
     @dlt.resource(table_name=n_f)
     def table_name_with_lambda(_range):
-            yield list(range(_range))
+        yield list(range(_range))
 
     schema = expect_tables(table_name_with_lambda)
     assert "table_name_with_lambda" not in schema.tables

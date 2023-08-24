@@ -11,6 +11,7 @@ from dlt.destinations.weaviate.weaviate_client import WeaviateClient
 from tests.pipeline.utils import assert_load_info
 from .utils import assert_class, delete_classes, drop_active_pipeline_data
 
+
 @pytest.fixture(autouse=True)
 def drop_weaviate_schema() -> None:
     yield
@@ -144,16 +145,14 @@ def test_pipeline_merge() -> None:
             "doc_id": 1,
             "title": "The Shawshank Redemption",
             "description": (
-                "Two imprisoned men find redemption through acts "
-                "of decency over the years."
+                "Two imprisoned men find redemption through acts of decency over the years."
             ),
         },
         {
             "doc_id": 2,
             "title": "The Godfather",
             "description": (
-                "A crime dynasty's aging patriarch transfers "
-                "control to his reluctant son."
+                "A crime dynasty's aging patriarch transfers control to his reluctant son."
             ),
         },
         {
@@ -258,20 +257,39 @@ def test_merge_github_nested() -> None:
     p = dlt.pipeline(destination="weaviate", dataset_name="github1", full_refresh=True)
     assert p.dataset_name.startswith("github1_202")
 
-    with open("tests/normalize/cases/github.issues.load_page_5_duck.json", "r", encoding="utf-8") as f:
+    with open(
+        "tests/normalize/cases/github.issues.load_page_5_duck.json", "r", encoding="utf-8"
+    ) as f:
         data = json.load(f)
 
     info = p.run(
-        weaviate_adapter(data[:17], vectorize=["title", "body"], tokenization={"user__login": "lowercase"}),
+        weaviate_adapter(
+            data[:17], vectorize=["title", "body"], tokenization={"user__login": "lowercase"}
+        ),
         table_name="issues",
         write_disposition="merge",
-        primary_key="id"
+        primary_key="id",
     )
     assert_load_info(info)
     # assert if schema contains tables with right names
-    assert set(p.default_schema.tables.keys()) == {'DltVersion', 'DltLoads', 'Issues', 'DltPipelineState', 'Issues__Labels', 'Issues__Assignees'}
-    assert set([t["name"] for t in p.default_schema.data_tables()]) == {'Issues', 'Issues__Labels', 'Issues__Assignees'}
-    assert set([t["name"] for t in p.default_schema.dlt_tables()]) == {'DltVersion', 'DltLoads', 'DltPipelineState'}
+    assert set(p.default_schema.tables.keys()) == {
+        "DltVersion",
+        "DltLoads",
+        "Issues",
+        "DltPipelineState",
+        "Issues__Labels",
+        "Issues__Assignees",
+    }
+    assert set([t["name"] for t in p.default_schema.data_tables()]) == {
+        "Issues",
+        "Issues__Labels",
+        "Issues__Assignees",
+    }
+    assert set([t["name"] for t in p.default_schema.dlt_tables()]) == {
+        "DltVersion",
+        "DltLoads",
+        "DltPipelineState",
+    }
     issues = p.default_schema.tables["Issues"]
     # make sure that both "id" column and "primary_key" were changed to __id
     assert issues["columns"]["__id"]["primary_key"] is True

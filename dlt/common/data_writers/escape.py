@@ -7,10 +7,13 @@ from dlt.common.json import json
 
 # use regex to escape characters in single pass
 SQL_ESCAPE_DICT = {"'": "''", "\\": "\\\\", "\n": "\\n", "\r": "\\r"}
-SQL_ESCAPE_RE = re.compile("|".join([re.escape(k) for k in sorted(SQL_ESCAPE_DICT, key=len, reverse=True)]), flags=re.DOTALL)
+SQL_ESCAPE_RE = re.compile(
+    "|".join([re.escape(k) for k in sorted(SQL_ESCAPE_DICT, key=len, reverse=True)]),
+    flags=re.DOTALL,
+)
 
 
-def _escape_extended(v: str, prefix:str = "E'") -> str:
+def _escape_extended(v: str, prefix: str = "E'") -> str:
     return "{}{}{}".format(prefix, SQL_ESCAPE_RE.sub(lambda x: SQL_ESCAPE_DICT[x.group(0)], v), "'")
 
 
@@ -25,7 +28,7 @@ def escape_redshift_literal(v: Any) -> Any:
     if isinstance(v, (datetime, date)):
         return f"'{v.isoformat()}'"
     if isinstance(v, (list, dict)):
-        return "json_parse(%s)" % _escape_extended(json.dumps(v), prefix='\'')
+        return "json_parse(%s)" % _escape_extended(json.dumps(v), prefix="'")
 
     return str(v)
 
@@ -68,7 +71,7 @@ escape_athena_identifier = escape_postgres_identifier
 
 def escape_bigquery_identifier(v: str) -> str:
     # https://cloud.google.com/bigquery/docs/reference/standard-sql/lexical
-    return "`" + v.replace("\\", "\\\\").replace("`","\\`") + "`"
+    return "`" + v.replace("\\", "\\\\").replace("`", "\\`") + "`"
 
 
 def escape_snowflake_identifier(v: str) -> str:

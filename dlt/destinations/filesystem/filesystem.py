@@ -8,7 +8,13 @@ from dlt.common import logger
 from dlt.common.schema import Schema, TSchemaTables, TTableSchema
 from dlt.common.storages import FileStorage
 from dlt.common.destination import DestinationCapabilitiesContext
-from dlt.common.destination.reference import NewLoadJob, TLoadJobState, LoadJob, JobClientBase, FollowupJob
+from dlt.common.destination.reference import (
+    NewLoadJob,
+    TLoadJobState,
+    LoadJob,
+    JobClientBase,
+    FollowupJob,
+)
 from dlt.destinations.job_impl import EmptyLoadJob
 from dlt.destinations.filesystem import capabilities
 from dlt.destinations.filesystem.configuration import FilesystemClientConfiguration
@@ -20,38 +26,48 @@ from dlt.destinations import path_utils
 
 class LoadFilesystemJob(LoadJob):
     def __init__(
-            self,
-            local_path: str,
-            dataset_path: str,
-            *,
-            config: FilesystemClientConfiguration,
-            schema_name: str,
-            load_id: str
+        self,
+        local_path: str,
+        dataset_path: str,
+        *,
+        config: FilesystemClientConfiguration,
+        schema_name: str,
+        load_id: str,
     ) -> None:
         file_name = FileStorage.get_file_name_from_file_path(local_path)
         self.config = config
         self.dataset_path = dataset_path
-        self.destination_file_name = LoadFilesystemJob.make_destination_filename(config.layout, file_name, schema_name, load_id)
+        self.destination_file_name = LoadFilesystemJob.make_destination_filename(
+            config.layout, file_name, schema_name, load_id
+        )
 
         super().__init__(file_name)
         fs_client, _ = client_from_config(config)
-        self.destination_file_name = LoadFilesystemJob.make_destination_filename(config.layout, file_name, schema_name, load_id)
+        self.destination_file_name = LoadFilesystemJob.make_destination_filename(
+            config.layout, file_name, schema_name, load_id
+        )
         item = self.make_remote_path()
         logger.info("PUT file {item}")
         fs_client.put_file(local_path, item)
 
     @staticmethod
-    def make_destination_filename(layout: str, file_name: str, schema_name: str, load_id: str) -> str:
+    def make_destination_filename(
+        layout: str, file_name: str, schema_name: str, load_id: str
+    ) -> str:
         job_info = LoadStorage.parse_job_file_name(file_name)
-        return path_utils.create_path(layout,
-                                      schema_name=schema_name,
-                                      table_name=job_info.table_name,
-                                      load_id=load_id,
-                                      file_id=job_info.file_id,
-                                      ext=job_info.file_format)
+        return path_utils.create_path(
+            layout,
+            schema_name=schema_name,
+            table_name=job_info.table_name,
+            load_id=load_id,
+            file_id=job_info.file_id,
+            ext=job_info.file_format,
+        )
 
     def make_remote_path(self) -> str:
-        return f"{self.config.protocol}://{posixpath.join(self.dataset_path, self.destination_file_name)}"
+        return (
+            f"{self.config.protocol}://{posixpath.join(self.dataset_path, self.destination_file_name)}"
+        )
 
     def state(self) -> TLoadJobState:
         return "completed"
@@ -64,7 +80,9 @@ class FollowupFilesystemJob(FollowupJob, LoadFilesystemJob):
     def create_followup_jobs(self, next_state: str) -> List[NewLoadJob]:
         jobs = super().create_followup_jobs(next_state)
         if next_state == "completed":
-            ref_job = NewReferenceJob(file_name=self.file_name(), status="running", remote_path=self.make_remote_path())
+            ref_job = NewReferenceJob(
+                file_name=self.file_name(), status="running", remote_path=self.make_remote_path()
+            )
             jobs.append(ref_job)
         return jobs
 
@@ -98,7 +116,9 @@ class FilesystemClient(JobClientBase):
             # print(f"TRUNCATE {truncated_dirs}")
             truncate_prefixes: Set[str] = set()
             for table in truncate_tables:
-                table_prefix = self.table_prefix_layout.format(schema_name=self.schema.name, table_name=table)
+                table_prefix = self.table_prefix_layout.format(
+                    schema_name=self.schema.name, table_name=table
+                )
                 truncate_prefixes.add(posixpath.join(self.dataset_path, table_prefix))
             # print(f"TRUNCATE PREFIXES {truncate_prefixes}")
 
@@ -120,9 +140,14 @@ class FilesystemClient(JobClientBase):
                                 # print(f"DEL {item}")
                                 self.fs_client.rm_file(item)
                 except FileNotFoundError:
-                    logger.info(f"Directory or path to truncate tables {truncate_dir} does not exist but it should be created previously!")
+                    logger.info(
+                        f"Directory or path to truncate tables {truncate_dir} does not exist but it"
+                        " should be created previously!"
+                    )
 
-    def update_storage_schema(self, only_tables: Iterable[str] = None, expected_update: TSchemaTables = None) -> TSchemaTables:
+    def update_storage_schema(
+        self, only_tables: Iterable[str] = None, expected_update: TSchemaTables = None
+    ) -> TSchemaTables:
         # create destination dirs for all tables
         dirs_to_create = self._get_table_dirs(only_tables or self.schema.tables.keys())
         for directory in dirs_to_create:
@@ -133,7 +158,9 @@ class FilesystemClient(JobClientBase):
         """Gets unique directories where table data is stored."""
         table_dirs: Set[str] = set()
         for table_name in table_names:
-            table_prefix = self.table_prefix_layout.format(schema_name=self.schema.name, table_name=table_name)
+            table_prefix = self.table_prefix_layout.format(
+                schema_name=self.schema.name, table_name=table_name
+            )
             destination_dir = posixpath.join(self.dataset_path, table_prefix)
             # extract the path component
             table_dirs.add(os.path.dirname(destination_dir))
@@ -149,7 +176,7 @@ class FilesystemClient(JobClientBase):
             self.dataset_path,
             config=self.config,
             schema_name=self.schema.name,
-            load_id=load_id
+            load_id=load_id,
         )
 
     def restore_file_load(self, file_path: str) -> LoadJob:
@@ -164,5 +191,7 @@ class FilesystemClient(JobClientBase):
     def __enter__(self) -> "FilesystemClient":
         return self
 
-    def __exit__(self, exc_type: Type[BaseException], exc_val: BaseException, exc_tb: TracebackType) -> None:
+    def __exit__(
+        self, exc_type: Type[BaseException], exc_val: BaseException, exc_tb: TracebackType
+    ) -> None:
         pass

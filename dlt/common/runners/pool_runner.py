@@ -15,7 +15,11 @@ def create_pool(config: PoolRunnerConfiguration) -> Pool:
     if config.pool_type == "process":
         # if not fork method, provide initializer for logs and configuration
         if multiprocessing.get_start_method() != "fork" and init._INITIALIZED:
-            return Pool(processes=config.workers, initializer=init.initialize_runtime, initargs=(init._RUN_CONFIGURATION, ))
+            return Pool(
+                processes=config.workers,
+                initializer=init.initialize_runtime,
+                initargs=(init._RUN_CONFIGURATION,),
+            )
         else:
             return Pool(processes=config.workers)
     elif config.pool_type == "thread":
@@ -24,10 +28,14 @@ def create_pool(config: PoolRunnerConfiguration) -> Pool:
     return None
 
 
-def run_pool(config: PoolRunnerConfiguration, run_f: Union[Runnable[TPool], Callable[[TPool], TRunMetrics]]) -> int:
+def run_pool(
+    config: PoolRunnerConfiguration, run_f: Union[Runnable[TPool], Callable[[TPool], TRunMetrics]]
+) -> int:
     # validate the run function
     if not isinstance(run_f, Runnable) and not callable(run_f):
-        raise ValueError(run_f, "Pool runner entry point must be a function f(pool: TPool) or Runnable")
+        raise ValueError(
+            run_f, "Pool runner entry point must be a function f(pool: TPool) or Runnable"
+        )
 
     # start pool
     pool = create_pool(config)

@@ -10,7 +10,7 @@ from dlt.common.runners import TRunMetrics, Runnable, workermethod
 from dlt.common.utils import uniq_id
 
 # remove fork-server because it hangs the tests no CI
-ALL_METHODS = set(multiprocessing.get_all_start_methods()).intersection(['fork', 'spawn'])
+ALL_METHODS = set(multiprocessing.get_all_start_methods()).intersection(["fork", "spawn"])
 
 
 @pytest.fixture(autouse=True)
@@ -21,7 +21,6 @@ def mp_method_auto() -> Iterator[None]:
 
 
 class _TestRunnableWorkerMethod(Runnable):
-
     def __init__(self, tasks: int) -> None:
         self.uniq = uniq_id()
         self.tasks = tasks
@@ -37,7 +36,9 @@ class _TestRunnableWorkerMethod(Runnable):
     def _run(self, pool: Pool) -> Iterator[Tuple[int, str, int]]:
         rid = id(self)
         assert rid in _TestRunnableWorkerMethod.RUNNING
-        self.rv = rv = pool.starmap(_TestRunnableWorkerMethod.worker, [(rid, i) for i in range(self.tasks)])
+        self.rv = rv = pool.starmap(
+            _TestRunnableWorkerMethod.worker, [(rid, i) for i in range(self.tasks)]
+        )
         assert rid in _TestRunnableWorkerMethod.RUNNING
         return rv
 
@@ -47,7 +48,6 @@ class _TestRunnableWorkerMethod(Runnable):
 
 
 class _TestRunnableWorker(Runnable):
-
     def __init__(self, tasks: int) -> None:
         self.tasks = tasks
         self.rv = None
@@ -60,7 +60,7 @@ class _TestRunnableWorker(Runnable):
         return (v, os.getpid())
 
     def _run(self, pool: Pool) -> Iterator[Tuple[int, str, int]]:
-        self.rv = rv = pool.starmap(_TestRunnableWorker.worker, [(i, ) for i in range(self.tasks)])
+        self.rv = rv = pool.starmap(_TestRunnableWorker.worker, [(i,) for i in range(self.tasks)])
         return rv
 
     def run(self, pool: Pool) -> TRunMetrics:

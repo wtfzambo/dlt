@@ -6,6 +6,7 @@ from tests.utils import TEST_STORAGE_ROOT, test_storage
 
 BASEPATH = "docs/snippets"
 
+
 def run_snippet(filename: str) -> Dict[str, Any]:
     with set_working_dir(BASEPATH):
         code = open(f"{filename}.py", encoding="utf-8").read()

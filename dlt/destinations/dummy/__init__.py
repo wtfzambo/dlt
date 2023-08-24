@@ -9,7 +9,13 @@ from dlt.common.destination.reference import JobClientBase, DestinationClientCon
 from dlt.destinations.dummy.configuration import DummyClientConfiguration
 
 
-@with_config(spec=DummyClientConfiguration, sections=(known_sections.DESTINATION, "dummy",))
+@with_config(
+    spec=DummyClientConfiguration,
+    sections=(
+        known_sections.DESTINATION,
+        "dummy",
+    ),
+)
 def _configure(config: DummyClientConfiguration = config.value) -> DummyClientConfiguration:
     return config
 
@@ -32,7 +38,9 @@ def capabilities() -> DestinationCapabilitiesContext:
     return caps
 
 
-def client(schema: Schema, initial_config: DestinationClientConfiguration = config.value) -> JobClientBase:
+def client(
+    schema: Schema, initial_config: DestinationClientConfiguration = config.value
+) -> JobClientBase:
     # import client when creating instance so capabilities and config specs can be accessed without dependencies installed
     from dlt.destinations.dummy.dummy import DummyClient
 

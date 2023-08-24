@@ -11,7 +11,13 @@ from dlt.common.arithmetics import DEFAULT_NUMERIC_PRECISION, DEFAULT_NUMERIC_SC
 from dlt.destinations.redshift.configuration import RedshiftClientConfiguration
 
 
-@with_config(spec=RedshiftClientConfiguration, sections=(known_sections.DESTINATION, "redshift",))
+@with_config(
+    spec=RedshiftClientConfiguration,
+    sections=(
+        known_sections.DESTINATION,
+        "redshift",
+    ),
+)
 def _configure(config: RedshiftClientConfiguration = config.value) -> RedshiftClientConfiguration:
     return config
 
@@ -38,7 +44,9 @@ def capabilities() -> DestinationCapabilitiesContext:
     return caps
 
 
-def client(schema: Schema, initial_config: DestinationClientConfiguration = config.value) -> JobClientBase:
+def client(
+    schema: Schema, initial_config: DestinationClientConfiguration = config.value
+) -> JobClientBase:
     # import client when creating instance so capabilities and config specs can be accessed without dependencies installed
     from dlt.destinations.redshift.redshift import RedshiftClient
 

@@ -1,10 +1,33 @@
-
-from typing import List, Literal, Mapping, MutableMapping, MutableSequence, NewType, Sequence, TypeVar, TypedDict, Optional, Union
-from dlt.common.configuration.specs.base_configuration import BaseConfiguration, get_config_if_union_hint
+from typing import (
+    List,
+    Literal,
+    Mapping,
+    MutableMapping,
+    MutableSequence,
+    NewType,
+    Sequence,
+    TypeVar,
+    TypedDict,
+    Optional,
+    Union,
+)
+from dlt.common.configuration.specs.base_configuration import (
+    BaseConfiguration,
+    get_config_if_union_hint,
+)
 from dlt.common.configuration.specs import GcpServiceAccountCredentialsWithoutDefaults
 
-from dlt.common.typing import StrAny, extract_inner_type, extract_optional_type, is_dict_generic_type, is_list_generic_type, is_literal_type, is_newtype_type, is_optional_type, is_typeddict
-
+from dlt.common.typing import (
+    StrAny,
+    extract_inner_type,
+    extract_optional_type,
+    is_dict_generic_type,
+    is_list_generic_type,
+    is_literal_type,
+    is_newtype_type,
+    is_optional_type,
+    is_typeddict,
+)
 
 
 class TTestTyDi(TypedDict):
@@ -76,4 +99,7 @@ def test_get_config_if_union() -> None:
     assert get_config_if_union_hint(Union[BaseException, str, StrAny]) is None
     assert get_config_if_union_hint(Union[BaseConfiguration, str, StrAny]) is BaseConfiguration
     assert get_config_if_union_hint(Union[str, BaseConfiguration, StrAny]) is BaseConfiguration
-    assert get_config_if_union_hint(Union[GcpServiceAccountCredentialsWithoutDefaults, StrAny, str]) is GcpServiceAccountCredentialsWithoutDefaults
+    assert (
+        get_config_if_union_hint(Union[GcpServiceAccountCredentialsWithoutDefaults, StrAny, str])
+        is GcpServiceAccountCredentialsWithoutDefaults
+    )

@@ -17,7 +17,9 @@ COMMON_TEST_CASES_PATH = "./tests/common/cases/"
 # for import schema tests, change when upgrading the schema version
 IMPORTED_VERSION_HASH_ETH_V6 = "++bJOVuScYYoVUFtjmZMBV+cxsWs8irYHIMV8J1xD5g="
 # test sentry DSN
-TEST_SENTRY_DSN = "https://797678dd0af64b96937435326c7d30c1@o1061158.ingest.sentry.io/4504306172821504"
+TEST_SENTRY_DSN = (
+    "https://797678dd0af64b96937435326c7d30c1@o1061158.ingest.sentry.io/4504306172821504"
+)
 # preserve secrets path to be able to restore it
 SECRET_STORAGE_PATH = environ_provider.SECRET_STORAGE_PATH
 
@@ -41,11 +43,10 @@ def yml_case_path(name: str) -> str:
 
 
 def row_to_column_schemas(row: StrAny) -> TTableSchemaColumns:
-    return {k: utils.add_missing_hints({
-                "name": k,
-                "data_type": "text",
-                "nullable": False
-            }) for k in row.keys()}
+    return {
+        k: utils.add_missing_hints({"name": k, "data_type": "text", "nullable": False})
+        for k in row.keys()
+    }
 
 
 @pytest.fixture(autouse=True)
@@ -55,13 +56,17 @@ def restore_secret_storage_path() -> None:
 
 def load_secret(name: str) -> str:
     environ_provider.SECRET_STORAGE_PATH = "./tests/common/cases/secrets/%s"
-    secret, _ = environ_provider.EnvironProvider().get_value(name, environ_provider.TSecretValue, None)
+    secret, _ = environ_provider.EnvironProvider().get_value(
+        name, environ_provider.TSecretValue, None
+    )
     if not secret:
         raise FileNotFoundError(environ_provider.SECRET_STORAGE_PATH % name)
     return secret
 
 
-def modify_and_commit_file(repo_path: str, file_name: str, content: str = "NEW README CONTENT") -> Tuple[str, Commit]:
+def modify_and_commit_file(
+    repo_path: str, file_name: str, content: str = "NEW README CONTENT"
+) -> Tuple[str, Commit]:
     file_path = os.path.join(repo_path, file_name)
 
     with open(file_path, "w", encoding="utf-8") as f:

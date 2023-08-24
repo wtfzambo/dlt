@@ -7,7 +7,14 @@ from dlt.common.exceptions import PipelineStateNotAvailable
 from dlt.common.pipeline import StateInjectableContext, source_state
 from dlt.common.schema import Schema
 from dlt.common.typing import TDataItems
-from dlt.extract.exceptions import InvalidParentResourceDataType, InvalidParentResourceIsAFunction, InvalidTransformerDataTypeGeneratorFunctionRequired, InvalidTransformerGeneratorFunction, ParametrizedResourceUnbound, ResourcesNotFoundError
+from dlt.extract.exceptions import (
+    InvalidParentResourceDataType,
+    InvalidParentResourceIsAFunction,
+    InvalidTransformerDataTypeGeneratorFunctionRequired,
+    InvalidTransformerGeneratorFunction,
+    ParametrizedResourceUnbound,
+    ResourcesNotFoundError,
+)
 from dlt.extract.pipe import Pipe
 from dlt.extract.typing import FilterItem, MapItem
 from dlt.extract.source import DltResource, DltSource
@@ -19,8 +26,7 @@ def test_call_data_resource() -> None:
 
 
 def test_parametrized_resource() -> None:
-
-    def parametrized(p1, /, p2, *, p3 = None):
+    def parametrized(p1, /, p2, *, p3=None):
         assert p1 == "p1"
         assert p2 == 1
         assert p3 is None
@@ -65,8 +71,7 @@ def test_parametrized_resource() -> None:
 
 
 def test_parametrized_transformer() -> None:
-
-    def good_transformer(item, /, p1, p2, *, p3 = None):
+    def good_transformer(item, /, p1, p2, *, p3=None):
         assert p1 == "p1"
         assert p2 == 2
         assert p3 is None
@@ -134,9 +139,9 @@ def test_parametrized_transformer() -> None:
 
     def assert_items(_items: TDataItems) -> None:
         # 2 items yielded * p2=2
-        assert len(_items) == 2*2
-        assert _items[0] == {'wrap': 'itemX', 'mark': 'p1', 'iter': 0}
-        assert _items[3] == {'wrap': 'itemY', 'mark': 'p1', 'iter': 1}
+        assert len(_items) == 2 * 2
+        assert _items[0] == {"wrap": "itemX", "mark": "p1", "iter": 0}
+        assert _items[3] == {"wrap": "itemY", "mark": "p1", "iter": 1}
 
     assert_items(items)
 
@@ -148,7 +153,6 @@ def test_parametrized_transformer() -> None:
 
 
 def test_resource_bind_when_in_source() -> None:
-
     @dlt.resource
     def parametrized(_range: int):
         yield list(range(_range))
@@ -185,7 +189,6 @@ def test_resource_bind_when_in_source() -> None:
 
 
 def test_resource_bind_call_forms() -> None:
-
     @dlt.resource
     def returns_res(_input):
         # resource returning resource
@@ -228,7 +231,6 @@ def test_resource_bind_call_forms() -> None:
     b_returns_pipe = returns_pipe("ABCA")
     assert len(b_returns_pipe._pipe) == 1
 
-
     @dlt.source
     def test_source():
         return returns_res, returns_pipe, regular
@@ -241,7 +243,7 @@ def test_resource_bind_call_forms() -> None:
     assert s.regular._pipe is not regular._pipe
 
     # will repeat each string 3 times
-    s.regular.add_map(lambda i: i*3)
+    s.regular.add_map(lambda i: i * 3)
     assert len(regular._pipe) == 2
     assert len(s.regular._pipe) == 3
 
@@ -252,14 +254,14 @@ def test_resource_bind_call_forms() -> None:
     assert list(s.regular) == ["AAA", "AAA", "AAA"]
 
     # binding resource that returns resource will replace the object content, keeping the object id
-    s.returns_res.add_map(lambda i: i*3)
+    s.returns_res.add_map(lambda i: i * 3)
     s.returns_res.bind(["X", "Y", "Z"])
     # got rid of all mapping and filter functions
     assert len(s.returns_res._pipe) == 1
     assert list(s.returns_res) == ["X", "Y", "Z"]
 
     # same for resource returning pipe
-    s.returns_pipe.add_map(lambda i: i*3)
+    s.returns_pipe.add_map(lambda i: i * 3)
     s.returns_pipe.bind(["X", "Y", "M"])
     # got rid of all mapping and filter functions
     assert len(s.returns_pipe._pipe) == 1
@@ -267,12 +269,11 @@ def test_resource_bind_call_forms() -> None:
 
     # s.regular is exhausted so set it again
     # add lambda that after filtering for A, will multiply it by 4
-    s.resources["regular"] = regular.add_map(lambda i: i*4)(["A", "Y"])
-    assert list(s) == ['X', 'Y', 'Z', 'X', 'Y', 'M', 'AAAA']
+    s.resources["regular"] = regular.add_map(lambda i: i * 4)(["A", "Y"])
+    assert list(s) == ["X", "Y", "Z", "X", "Y", "M", "AAAA"]
 
 
 def test_call_clone_separate_pipe() -> None:
-
     all_yields = []
 
     def some_data_gen(param: str):
@@ -293,14 +294,13 @@ def test_call_clone_separate_pipe() -> None:
 
 
 def test_resource_bind_lazy_eval() -> None:
-
     @dlt.resource
     def needs_param(param):
         yield from range(param)
 
     @dlt.transformer(data_from=needs_param(3))
     def tx_form(item, multi):
-        yield item*multi
+        yield item * multi
 
     @dlt.transformer(data_from=tx_form(2))
     def tx_form_fin(item, div):
@@ -308,7 +308,7 @@ def test_resource_bind_lazy_eval() -> None:
 
     @dlt.transformer(data_from=needs_param)
     def tx_form_dir(item, multi):
-        yield item*multi
+        yield item * multi
 
     # tx_form takes data from needs_param(3) which is lazily evaluated
     assert list(tx_form(2)) == [0, 2, 4]
@@ -316,8 +316,8 @@ def test_resource_bind_lazy_eval() -> None:
     assert list(tx_form(2)) == [0, 2, 4]
 
     # same for tx_form_fin
-    assert list(tx_form_fin(3)) == [0, 2/3, 4/3]
-    assert list(tx_form_fin(3)) == [0, 2/3, 4/3]
+    assert list(tx_form_fin(3)) == [0, 2 / 3, 4 / 3]
+    assert list(tx_form_fin(3)) == [0, 2 / 3, 4 / 3]
 
     # binding `needs_param`` in place will not affect the tx_form and tx_form_fin (they operate on copies)
     needs_param.bind(4)
@@ -331,7 +331,6 @@ def test_resource_bind_lazy_eval() -> None:
 
 
 def test_transformer_preliminary_step() -> None:
-
     def yield_twice(item):
         yield item.upper()
         yield item.upper()
@@ -340,17 +339,23 @@ def test_transformer_preliminary_step() -> None:
     # filter out small caps and insert this before the head
     tx_stage.add_filter(FilterItem(lambda letter: letter.isupper()), 0)
     # be got filtered out before duplication
-    assert list(dlt.resource(["A", "b", "C"], name="data") | tx_stage) == ['A', 'A', 'C', 'C']
+    assert list(dlt.resource(["A", "b", "C"], name="data") | tx_stage) == ["A", "A", "C", "C"]
 
     # filter after duplication
     tx_stage = dlt.transformer()(yield_twice)()
     tx_stage.add_filter(FilterItem(lambda letter: letter.isupper()))
     # nothing is filtered out: on duplicate we also capitalize so filter does not trigger
-    assert list(dlt.resource(["A", "b", "C"], name="data") | tx_stage) == ['A', 'A', 'B', 'B', 'C', 'C']
+    assert list(dlt.resource(["A", "b", "C"], name="data") | tx_stage) == [
+        "A",
+        "A",
+        "B",
+        "B",
+        "C",
+        "C",
+    ]
 
 
 def test_select_resources() -> None:
-
     @dlt.source
     def test_source(no_resources):
         for i in range(no_resources):
@@ -376,7 +381,11 @@ def test_select_resources() -> None:
     s_sel = s.with_resources("resource_1", "resource_7")
     # returns a clone
     assert s is not s_sel
-    assert list(s_sel.selected_resources) == ["resource_1", "resource_7"] == list(s_sel.resources.selected)
+    assert (
+        list(s_sel.selected_resources)
+        == ["resource_1", "resource_7"]
+        == list(s_sel.resources.selected)
+    )
     assert list(s_sel.resources) == all_resource_names
     info = str(s_sel)
     assert "resource resource_0 is not selected" in info
@@ -394,7 +403,6 @@ def test_select_resources() -> None:
 def test_clone_source() -> None:
     @dlt.source
     def test_source(no_resources):
-
         def _gen(i):
             yield "A" * i
 
@@ -413,7 +421,7 @@ def test_clone_source() -> None:
         # but we keep pipe ids
         assert s.resources[name]._pipe._pipe_id == clone_s.resources[name]._pipe._pipe_id
 
-    assert list(s) == ['', 'A', 'AA', 'AAA']
+    assert list(s) == ["", "A", "AA", "AAA"]
     # we expired generators
     assert list(clone_s) == []
 
@@ -421,7 +429,6 @@ def test_clone_source() -> None:
 
     @dlt.source
     def test_source(no_resources):
-
         def _gen(i):
             yield "A" * i
 
@@ -436,15 +443,13 @@ def test_clone_source() -> None:
         clone_s.resources[name].bind(idx)
 
     # now thanks to late eval both sources evaluate separately
-    assert list(s) == ['', 'A', 'AA', 'AAA']
-    assert list(clone_s) == ['', 'A', 'AA', 'AAA']
+    assert list(s) == ["", "A", "AA", "AAA"]
+    assert list(clone_s) == ["", "A", "AA", "AAA"]
 
 
 def test_multiple_parametrized_transformers() -> None:
-
     @dlt.source
     def _source(test_set: int = 1):
-
         @dlt.resource(selected=False)
         def _r1():
             yield ["a", "b", "c"]
@@ -455,7 +460,7 @@ def test_multiple_parametrized_transformers() -> None:
 
         @dlt.transformer(data_from=_t1)
         def _t2(items, mul):
-            yield items*mul
+            yield items * mul
 
         if test_set == 1:
             return _r1, _t1, _t2
@@ -468,8 +473,7 @@ def test_multiple_parametrized_transformers() -> None:
             # true pipelining fun
             return _r1() | _t1("2") | _t2(2)
 
-
-    expected_data = ['a_2', 'b_2', 'c_2', 'a_2', 'b_2', 'c_2']
+    expected_data = ["a_2", "b_2", "c_2", "a_2", "b_2", "c_2"]
 
     # this s contains all resources
     s = _source(1)
@@ -530,7 +534,6 @@ def test_multiple_parametrized_transformers() -> None:
 def test_extracted_resources_selector() -> None:
     @dlt.source
     def _source(test_set: int = 1):
-
         @dlt.resource(selected=False, write_disposition="append")
         def _r1():
             yield ["a", "b", "c"]
@@ -541,7 +544,7 @@ def test_extracted_resources_selector() -> None:
 
         @dlt.transformer(data_from=_r1, write_disposition="merge")
         def _t2(items, mul):
-            yield items*mul
+            yield items * mul
 
         if test_set == 1:
             return _r1, _t1, _t2
@@ -579,10 +582,8 @@ def test_extracted_resources_selector() -> None:
 
 
 def test_source_decompose() -> None:
-
     @dlt.source
     def _source():
-
         @dlt.resource(selected=True)
         def _r_init():
             yield ["-", "x", "!"]
@@ -597,18 +598,18 @@ def test_source_decompose() -> None:
 
         @dlt.transformer(data_from=_r1)
         def _t2(items, mul):
-            yield items*mul
+            yield items * mul
 
         @dlt.transformer(data_from=_r1)
         def _t3(items, mul):
             for item in items:
-                yield item.upper()*mul
+                yield item.upper() * mul
 
         # add something to init
         @dlt.transformer(data_from=_r_init)
         def _t_init_post(items):
             for item in items:
-                yield item*2
+                yield item * 2
 
         @dlt.resource
         def _r_isolee():
@@ -631,7 +632,14 @@ def test_source_decompose() -> None:
 
     # keeps order of resources inside
     # here we didn't eliminate (_r_init, _r_init) as this not impacts decomposition, however this edge is not necessary
-    assert _source().resources.selected_dag == [("_r_init", "_r_init"), ("_r_init", "_t_init_post"), ('_r1', '_t1'), ('_r1', '_t2'), ('_r1', '_t3'), ('_r_isolee', '_r_isolee')]
+    assert _source().resources.selected_dag == [
+        ("_r_init", "_r_init"),
+        ("_r_init", "_t_init_post"),
+        ("_r1", "_t1"),
+        ("_r1", "_t2"),
+        ("_r1", "_t3"),
+        ("_r_isolee", "_r_isolee"),
+    ]
     components = _source().decompose("scc")
     # first element contains _r_init
     assert "_r_init" in components[0].resources.selected.keys()
@@ -660,10 +668,8 @@ def test_illegal_double_bind() -> None:
     assert "Bound DltResource" in str(py_ex.value)
 
 
-
 @dlt.resource
 def res_in_res(table_name, w_d):
-
     def _gen(s):
         yield from s
 
@@ -671,7 +677,6 @@ def res_in_res(table_name, w_d):
 
 
 def test_resource_returning_resource() -> None:
-
     @dlt.source
     def source_r_in_r():
         yield res_in_res
@@ -703,13 +708,19 @@ def test_source_dynamic_resource_attrs() -> None:
 def test_add_transform_steps() -> None:
     # add all step types, using indexes. final steps
     # gen -> map that converts to str and multiplies character -> filter str of len 2 -> yield all characters in str separately
-    r = dlt.resource([1, 2, 3, 4], name="all").add_limit(3).add_yield_map(lambda i: (yield from i)).add_map(lambda i: str(i) * i, 1).add_filter(lambda i: len(i) == 2, 2)
+    r = (
+        dlt.resource([1, 2, 3, 4], name="all")
+        .add_limit(3)
+        .add_yield_map(lambda i: (yield from i))
+        .add_map(lambda i: str(i) * i, 1)
+        .add_filter(lambda i: len(i) == 2, 2)
+    )
     assert list(r) == ["2", "2"]
 
 
 def test_add_transform_steps_pipe() -> None:
     r = dlt.resource([1, 2, 3], name="all") | (lambda i: str(i) * i) | (lambda i: (yield from i))
-    assert list(r) == ['1', '2', '2', '3', '3', '3']
+    assert list(r) == ["1", "2", "2", "3", "3", "3"]
 
 
 def test_limit_infinite_counter() -> None:
@@ -718,7 +729,6 @@ def test_limit_infinite_counter() -> None:
 
 
 def test_limit_source() -> None:
-
     def mul_c(item):
         yield from "A" * (item + 2)
 
@@ -730,11 +740,10 @@ def test_limit_source() -> None:
             yield r | dlt.transformer(name=f"mul_c_{idx}")(mul_c)
 
     # transformer is not limited to 2 elements, infinite resource is, we have 3 resources
-    assert list(infinite_source().add_limit(2)) == ['A', 'A', 0, 'A', 'A', 'A', 1] * 3
+    assert list(infinite_source().add_limit(2)) == ["A", "A", 0, "A", "A", "A", 1] * 3
 
 
 def test_source_state() -> None:
-
     @dlt.source
     def test_source(expected_state):
         assert source_state() == expected_state
@@ -744,17 +753,16 @@ def test_source_state() -> None:
         test_source({}).state
 
     dlt.pipeline(full_refresh=True)
-    assert test_source({}).state  == {}
+    assert test_source({}).state == {}
 
     # inject state to see if what we write in state is there
     with Container().injectable_context(StateInjectableContext(state={})) as state:
         test_source({}).state["value"] = 1
         test_source({"value": 1})
-        assert state.state == {'sources': {'test_source': {'value': 1}}}
+        assert state.state == {"sources": {"test_source": {"value": 1}}}
 
 
 def test_resource_state() -> None:
-
     @dlt.resource
     def test_resource():
         yield [1, 2, 3]
@@ -785,10 +793,14 @@ def test_resource_state() -> None:
         # resource section is current module
         print(state.state)
         # the resource that is a part of the source will create a resource state key in the source state key
-        assert state.state["sources"]["schema_section"] == {'resources': {'test_resource': {'in-source': True}}}
-        assert s.state == {'resources': {'test_resource': {'in-source': True}}}
+        assert state.state["sources"]["schema_section"] == {
+            "resources": {"test_resource": {"in-source": True}}
+        }
+        assert s.state == {"resources": {"test_resource": {"in-source": True}}}
         # the standalone resource will create key which is default schema name
-        assert state.state["sources"][p._make_schema_with_default_name().name] == {'resources': {'test_resource': {'direct': True}}}
+        assert state.state["sources"][p._make_schema_with_default_name().name] == {
+            "resources": {"test_resource": {"direct": True}}
+        }
 
 
 # def test_add_resources_to_source_simple() -> None:
@@ -805,7 +817,6 @@ def test_resource_dict() -> None:
 
 
 def test_source_multiple_iterations() -> None:
-
     def some_data():
         yield [1, 2, 3]
         yield [1, 2, 3]
@@ -820,23 +831,33 @@ def test_source_multiple_iterations() -> None:
 
 
 def test_exhausted_property() -> None:
-
     # this example will be exhausted after iteration
     def open_generator_data():
         yield from [1, 2, 3, 4]
+
     s = DltSource("source", "module", Schema("source"), [dlt.resource(open_generator_data())])
     assert s.exhausted is False
     assert next(iter(s)) == 1
     assert s.exhausted is True
 
     # lists will not exhaust
-    s = DltSource("source", "module", Schema("source"), [dlt.resource([1, 2, 3, 4], table_name="table", name="resource")])
+    s = DltSource(
+        "source",
+        "module",
+        Schema("source"),
+        [dlt.resource([1, 2, 3, 4], table_name="table", name="resource")],
+    )
     assert s.exhausted is False
     assert next(iter(s)) == 1
     assert s.exhausted is False
 
     # iterators will not exhaust
-    s = DltSource("source", "module", Schema("source"), [dlt.resource(iter([1, 2, 3, 4]), table_name="table", name="resource")])
+    s = DltSource(
+        "source",
+        "module",
+        Schema("source"),
+        [dlt.resource(iter([1, 2, 3, 4]), table_name="table", name="resource")],
+    )
     assert s.exhausted is False
     assert next(iter(s)) == 1
     assert s.exhausted is False
@@ -844,13 +865,21 @@ def test_exhausted_property() -> None:
     # having on exhausted generator resource will make the whole source exhausted
     def open_generator_data():
         yield from [1, 2, 3, 4]
-    s = DltSource("source", "module", Schema("source"), [ dlt.resource([1, 2, 3, 4], table_name="table", name="resource"), dlt.resource(open_generator_data())])
+
+    s = DltSource(
+        "source",
+        "module",
+        Schema("source"),
+        [
+            dlt.resource([1, 2, 3, 4], table_name="table", name="resource"),
+            dlt.resource(open_generator_data()),
+        ],
+    )
     assert s.exhausted is False
 
     # execute the whole source
     list(s)
     assert s.exhausted is True
-
 
     # source with transformers also exhausts
     @dlt.source
@@ -858,7 +887,8 @@ def test_exhausted_property() -> None:
         r = dlt.resource(itertools.count(start=1), name="infinity").add_limit(5)
         yield r
         yield r | dlt.transformer(name="double")(lambda x: x * 2)
+
     s = mysource()
     assert s.exhausted is False
-    assert next(iter(s)) == 2 # transformer is returned befor resource
+    assert next(iter(s)) == 2  # transformer is returned befor resource
     assert s.exhausted is True

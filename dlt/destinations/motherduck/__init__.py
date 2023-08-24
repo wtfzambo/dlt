@@ -11,8 +11,16 @@ from dlt.common.arithmetics import DEFAULT_NUMERIC_PRECISION, DEFAULT_NUMERIC_SC
 from dlt.destinations.motherduck.configuration import MotherDuckClientConfiguration
 
 
-@with_config(spec=MotherDuckClientConfiguration, sections=(known_sections.DESTINATION, "motherduck",))
-def _configure(config: MotherDuckClientConfiguration = config.value) -> MotherDuckClientConfiguration:
+@with_config(
+    spec=MotherDuckClientConfiguration,
+    sections=(
+        known_sections.DESTINATION,
+        "motherduck",
+    ),
+)
+def _configure(
+    config: MotherDuckClientConfiguration = config.value,
+) -> MotherDuckClientConfiguration:
     return config
 
 
@@ -38,7 +46,9 @@ def capabilities() -> DestinationCapabilitiesContext:
     return caps
 
 
-def client(schema: Schema, initial_config: DestinationClientConfiguration = config.value) -> JobClientBase:
+def client(
+    schema: Schema, initial_config: DestinationClientConfiguration = config.value
+) -> JobClientBase:
     # import client when creating instance so capabilities and config specs can be accessed without dependencies installed
     from dlt.destinations.motherduck.motherduck import MotherDuckClient
 

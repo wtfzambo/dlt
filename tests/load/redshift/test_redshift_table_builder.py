@@ -12,6 +12,7 @@ from dlt.destinations.redshift.configuration import RedshiftClientConfiguration,
 
 from tests.load.utils import TABLE_UPDATE
 
+
 @pytest.fixture
 def schema() -> Schema:
     return Schema("event")
@@ -20,12 +21,22 @@ def schema() -> Schema:
 @pytest.fixture
 def client(schema: Schema) -> RedshiftClient:
     # return client without opening connection
-    return RedshiftClient(schema, RedshiftClientConfiguration(dataset_name="test_" + uniq_id(), credentials=RedshiftCredentials()))
+    return RedshiftClient(
+        schema,
+        RedshiftClientConfiguration(
+            dataset_name="test_" + uniq_id(), credentials=RedshiftCredentials()
+        ),
+    )
 
 
 def test_redshift_configuration() -> None:
     # check names normalized
-    with custom_environ({"DESTINATION__REDSHIFT__CREDENTIALS__DATABASE": "UPPER_CASE_DATABASE", "DESTINATION__REDSHIFT__CREDENTIALS__PASSWORD": " pass\n"}):
+    with custom_environ(
+        {
+            "DESTINATION__REDSHIFT__CREDENTIALS__DATABASE": "UPPER_CASE_DATABASE",
+            "DESTINATION__REDSHIFT__CREDENTIALS__PASSWORD": " pass\n",
+        }
+    ):
         C = resolve_configuration(RedshiftCredentials(), sections=("destination", "redshift"))
         assert C.database == "upper_case_database"
         assert C.password == "pass"
@@ -33,13 +44,16 @@ def test_redshift_configuration() -> None:
     # check fingerprint
     assert RedshiftClientConfiguration().fingerprint() == ""
     # based on host
-    c = resolve_configuration(RedshiftCredentials(), explicit_value="postgres://user1:pass@host1/db1?warehouse=warehouse1&role=role1")
+    c = resolve_configuration(
+        RedshiftCredentials(),
+        explicit_value="postgres://user1:pass@host1/db1?warehouse=warehouse1&role=role1",
+    )
     assert RedshiftClientConfiguration(credentials=c).fingerprint() == digest128("host1")
 
 
 def test_create_table(client: RedshiftClient) -> None:
     # non existing table
-    sql = ';'.join(client._get_table_update_sql("event_test_table", TABLE_UPDATE, False))
+    sql = ";".join(client._get_table_update_sql("event_test_table", TABLE_UPDATE, False))
     sqlfluff.parse(sql, dialect="redshift")
     assert "event_test_table" in sql
     assert '"col1" bigint  NOT NULL' in sql
@@ -56,7 +70,7 @@ def test_create_table(client: RedshiftClient) -> None:
 
 def test_alter_table(client: RedshiftClient) -> None:
     # existing table has no columns
-    sql = ';'.join(client._get_table_update_sql("event_test_table", TABLE_UPDATE, True))
+    sql = ";".join(client._get_table_update_sql("event_test_table", TABLE_UPDATE, True))
     sqlfluff.parse(sql, dialect="redshift")
     canonical_name = client.sql_client.make_qualified_table_name("event_test_table")
     # must have several ALTER TABLE statements
@@ -81,7 +95,7 @@ def test_create_table_with_hints(client: RedshiftClient) -> None:
     mod_update[0]["sort"] = True
     mod_update[1]["cluster"] = True
     mod_update[4]["cluster"] = True
-    sql = ';'.join(client._get_table_update_sql("event_test_table", mod_update, False))
+    sql = ";".join(client._get_table_update_sql("event_test_table", mod_update, False))
     sqlfluff.parse(sql, dialect="redshift")
     # PRIMARY KEY will not be present https://heap.io/blog/redshift-pitfalls-avoid
     assert '"col1" bigint SORTKEY NOT NULL' in sql

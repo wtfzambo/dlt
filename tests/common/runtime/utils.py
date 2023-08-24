@@ -1,5 +1,6 @@
 from dlt.common.typing import StrStr
 
+
 def mock_image_env(environment: StrStr) -> None:
     environment["COMMIT_SHA"] = "192891"
     environment["IMAGE_VERSION"] = "scale/v:112"

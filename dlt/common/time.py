@@ -12,11 +12,15 @@ FUTURE_TIMESTAMP: float = 9999999999.0
 DAY_DURATION_SEC: float = 24 * 60 * 60.0
 
 
-def timestamp_within(timestamp: float, min_exclusive: Optional[float], max_inclusive: Optional[float]) -> bool:
+def timestamp_within(
+    timestamp: float, min_exclusive: Optional[float], max_inclusive: Optional[float]
+) -> bool:
     """
     check if timestamp within range uniformly treating none and range inclusiveness
     """
-    return timestamp > (min_exclusive or PAST_TIMESTAMP) and timestamp <= (max_inclusive or FUTURE_TIMESTAMP)
+    return timestamp > (min_exclusive or PAST_TIMESTAMP) and timestamp <= (
+        max_inclusive or FUTURE_TIMESTAMP
+    )
 
 
 def timestamp_before(timestamp: float, max_inclusive: Optional[float]) -> bool:
@@ -48,7 +52,7 @@ def parse_iso_like_datetime(value: Any) -> Union[pendulum.DateTime, pendulum.Dat
             dtv.minute,
             dtv.second,
             dtv.microsecond,
-            tz=dtv.tzinfo or UTC  # type: ignore
+            tz=dtv.tzinfo or UTC,  # type: ignore
         )
     # no typings for pendulum
     return dtv  # type: ignore
@@ -122,5 +126,7 @@ def ensure_pendulum_datetime(value: TAnyDateTime) -> pendulum.DateTime:
     raise TypeError(f"Cannot coerce {value} to a pendulum.DateTime object.")
 
 
-def reduce_pendulum_datetime_precision(value: pendulum.DateTime, microsecond_precision: int) -> pendulum.DateTime:
-    return value.set(microsecond=value.microsecond // 10**(6 - microsecond_precision) * 10**(6 - microsecond_precision))  # type: ignore
+def reduce_pendulum_datetime_precision(
+    value: pendulum.DateTime, microsecond_precision: int
+) -> pendulum.DateTime:
+    return value.set(microsecond=value.microsecond // 10 ** (6 - microsecond_precision) * 10 ** (6 - microsecond_precision))  # type: ignore

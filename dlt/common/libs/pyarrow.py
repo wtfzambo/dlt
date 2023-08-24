@@ -8,7 +8,9 @@ try:
     import pyarrow
     import pyarrow.parquet
 except ModuleNotFoundError:
-    raise MissingDependencyException("DLT parquet Helpers", [f"{version.DLT_PKG_NAME}[parquet]"], "DLT Helpers for for parquet.")
+    raise MissingDependencyException(
+        "DLT parquet Helpers", [f"{version.DLT_PKG_NAME}[parquet]"], "DLT Helpers for for parquet."
+    )
 
 
 def get_py_arrow_datatype(column_type: str, caps: DestinationCapabilitiesContext, tz: str) -> Any:

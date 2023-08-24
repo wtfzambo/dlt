@@ -6,7 +6,12 @@ from hexbytes import HexBytes
 from dlt.common import Wei, Decimal, pendulum, json
 from dlt.common.json import custom_pua_decode
 from dlt.common.schema import Schema, utils
-from dlt.common.schema.exceptions import CannotCoerceColumnException, CannotCoerceNullException, ParentTableNotFoundException, TablePropertiesConflictException
+from dlt.common.schema.exceptions import (
+    CannotCoerceColumnException,
+    CannotCoerceNullException,
+    ParentTableNotFoundException,
+    TablePropertiesConflictException,
+)
 from tests.common.utils import load_json_case
 
 
@@ -54,7 +59,6 @@ def test_map_column_preferred_type(schema: Schema) -> None:
     assert schema._infer_column_type("AA", "confidence", skip_preferred=True) == "text"
 
 
-
 def test_map_column_type(schema: Schema) -> None:
     # default mappings
     assert schema._infer_column_type("18271.11", "_column_name") == "text"
@@ -80,7 +84,12 @@ def test_coerce_row(schema: Schema) -> None:
     timestamp_float = 78172.128
     timestamp_str = "1970-01-01T21:42:52.128000+00:00"
     # add new column with preferred
-    row_1 = {"timestamp": timestamp_float, "confidence": "0.1", "value": "0xFF", "number": Decimal("128.67")}
+    row_1 = {
+        "timestamp": timestamp_float,
+        "confidence": "0.1",
+        "value": "0xFF",
+        "number": Decimal("128.67"),
+    }
     new_row_1, new_table = schema.coerce_row("event_user", None, row_1)
     # convert columns to list, they must correspond to the order of fields in row_1
     new_columns = list(new_table["columns"].values())
@@ -94,7 +103,12 @@ def test_coerce_row(schema: Schema) -> None:
     assert new_columns[3]["data_type"] == "decimal"
     assert "variant" not in new_columns[3]
     # also rows values should be coerced (confidence)
-    assert new_row_1 == {"timestamp": pendulum.parse(timestamp_str), "confidence": 0.1, "value": 255, "number": Decimal("128.67")}
+    assert new_row_1 == {
+        "timestamp": pendulum.parse(timestamp_str),
+        "confidence": 0.1,
+        "value": 255,
+        "number": Decimal("128.67"),
+    }
 
     # update schema
     schema.update_schema(new_table)
@@ -137,7 +151,9 @@ def test_coerce_row(schema: Schema) -> None:
     schema.update_schema(new_table)
 
     # variant column clashes with existing column - create new_colbool_v_binary column that would be created for binary variant, but give it a type datetime
-    _, new_table = schema.coerce_row("event_user", None, {"new_colbool": False, "new_colbool__v_timestamp": b"not fit"})
+    _, new_table = schema.coerce_row(
+        "event_user", None, {"new_colbool": False, "new_colbool__v_timestamp": b"not fit"}
+    )
     schema.update_schema(new_table)
     with pytest.raises(CannotCoerceColumnException) as exc_val:
         # now pass the binary that would create binary variant - but the column is occupied by text type
@@ -179,7 +195,12 @@ def test_shorten_variant_column(schema: Schema) -> None:
     _add_preferred_types(schema)
     timestamp_float = 78172.128
     # add new column with preferred
-    row_1 = {"timestamp": timestamp_float, "confidence": "0.1", "value": "0xFF", "number": Decimal("128.67")}
+    row_1 = {
+        "timestamp": timestamp_float,
+        "confidence": "0.1",
+        "value": "0xFF",
+        "number": Decimal("128.67"),
+    }
     _, new_table = schema.coerce_row("event_user", None, row_1)
     # schema assumes that identifiers are already normalized so confidence even if it is longer than 9 chars
     schema.update_schema(new_table)
@@ -188,7 +209,9 @@ def test_shorten_variant_column(schema: Schema) -> None:
     # now variant is created and this will be normalized
     # TODO: we should move the handling of variants to normalizer
     new_row_2, new_table = schema.coerce_row("event_user", None, {"confidence": False})
-    tag = schema.naming._compute_tag("confidence__v_bool", collision_prob=schema.naming._DEFAULT_COLLISION_PROB)
+    tag = schema.naming._compute_tag(
+        "confidence__v_bool", collision_prob=schema.naming._DEFAULT_COLLISION_PROB
+    )
     new_row_2_keys = list(new_row_2.keys())
     assert tag in new_row_2_keys[0]
     assert len(new_row_2_keys[0]) == 9
@@ -252,15 +275,18 @@ def test_supports_variant_pua_decode(schema: Schema) -> None:
     # pua encoding still present
     assert normalized_row[0][1]["wad"].startswith("")
     # decode pua
-    decoded_row = {k: custom_pua_decode(v) for k,v in normalized_row[0][1].items()}
+    decoded_row = {k: custom_pua_decode(v) for k, v in normalized_row[0][1].items()}
     assert isinstance(decoded_row["wad"], Wei)
     c_row, new_table = schema.coerce_row("eth", None, decoded_row)
-    assert c_row["wad__v_str"] == str(2**256-1)
+    assert c_row["wad__v_str"] == str(2**256 - 1)
     assert new_table["columns"]["wad__v_str"]["data_type"] == "text"
 
 
 def test_supports_variant(schema: Schema) -> None:
-    rows = [{"evm": Wei.from_int256(2137*10**16, decimals=18)}, {"evm": Wei.from_int256(2**256-1)}]
+    rows = [
+        {"evm": Wei.from_int256(2137 * 10**16, decimals=18)},
+        {"evm": Wei.from_int256(2**256 - 1)},
+    ]
     normalized_rows = []
     for row in rows:
         normalized_rows.extend(schema.normalize_data_item(row, "128812.2131", "event"))
@@ -270,7 +296,7 @@ def test_supports_variant(schema: Schema) -> None:
     # row 2 contains Wei
     assert "evm" in normalized_rows[1][1]
     assert isinstance(normalized_rows[1][1]["evm"], Wei)
-    assert normalized_rows[1][1]["evm"] == 2**256-1
+    assert normalized_rows[1][1]["evm"] == 2**256 - 1
     # coerce row
     c_row, new_table = schema.coerce_row("eth", None, normalized_rows[0][1])
     assert isinstance(c_row["evm"], Wei)
@@ -281,13 +307,12 @@ def test_supports_variant(schema: Schema) -> None:
     # coerce row that should expand to variant
     c_row, new_table = schema.coerce_row("eth", None, normalized_rows[1][1])
     assert isinstance(c_row["evm__v_str"], str)
-    assert c_row["evm__v_str"] == str(2**256-1)
+    assert c_row["evm__v_str"] == str(2**256 - 1)
     assert new_table["columns"]["evm__v_str"]["data_type"] == "text"
     assert new_table["columns"]["evm__v_str"]["variant"] is True
 
 
 def test_supports_recursive_variant(schema: Schema) -> None:
-
     class RecursiveVariant(int):
         # provide __call__ for SupportVariant
         def __call__(self) -> Any:
@@ -296,18 +321,16 @@ def test_supports_recursive_variant(schema: Schema) -> None:
             else:
                 return ("div2", RecursiveVariant(self // 2))
 
-
     row = {"rv": RecursiveVariant(8)}
     c_row, new_table = schema.coerce_row("rec_variant", None, row)
     # this variant keeps expanding until the value is 1, we start from 8 so there are log2(8) == 3 divisions
-    col_name = "rv" + "__v_div2"*3
+    col_name = "rv" + "__v_div2" * 3
     assert c_row[col_name] == 1
     assert new_table["columns"][col_name]["data_type"] == "bigint"
     assert new_table["columns"][col_name]["variant"] is True
 
 
 def test_supports_variant_autovariant_conflict(schema: Schema) -> None:
-
     class PureVariant(int):
         def __init__(self, v: Any) -> None:
             self.v = v
@@ -319,7 +342,7 @@ def test_supports_variant_autovariant_conflict(schema: Schema) -> None:
             if isinstance(self.v, float):
                 return ("text", self.v)
 
-    assert issubclass(PureVariant,int)
+    assert issubclass(PureVariant, int)
     rows = [{"pv": PureVariant(3377)}, {"pv": PureVariant(21.37)}]
     normalized_rows = []
     for row in rows:
@@ -412,9 +435,13 @@ def test_update_schema_table_prop_conflict(schema: Schema) -> None:
 
 
 def test_update_schema_column_conflict(schema: Schema) -> None:
-    tab1 = utils.new_table("tab1", write_disposition="append", columns=[
-        {"name": "col1", "data_type": "text", "nullable": False},
-    ])
+    tab1 = utils.new_table(
+        "tab1",
+        write_disposition="append",
+        columns=[
+            {"name": "col1", "data_type": "text", "nullable": False},
+        ],
+    )
     schema.update_schema(tab1)
     tab1_u1 = deepcopy(tab1)
     # simulate column that had other datatype inferred
@@ -466,11 +493,9 @@ def test_autodetect_convert_type(schema: Schema) -> None:
 
     # make sure variants behave the same
 
-
     class AlwaysWei(Decimal):
         def __call__(self) -> Any:
             return ("up", Wei(self))
-
 
     # create new column
     row = {"evm2": AlwaysWei(22)}
@@ -497,4 +522,3 @@ def test_autodetect_convert_type(schema: Schema) -> None:
     c_row, new_table = schema.coerce_row("eth", None, row)
     assert c_row["evm2"] == 22.2
     assert isinstance(c_row["evm2"], float)
-

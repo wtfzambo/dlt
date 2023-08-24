@@ -4,9 +4,10 @@ from dlt.destinations.weaviate.naming import NamingConvention
 
 from tests.common.utils import load_yml_case
 
+
 @dlt.source
 def small():
-    return dlt.resource([1,2,3], name="table")
+    return dlt.resource([1, 2, 3], name="table")
 
 
 def test_table_name_normalization() -> None:

@@ -2,7 +2,13 @@ from typing import ClassVar, Dict, Optional, Sequence, Tuple, List, Any
 from urllib.parse import urlparse
 
 from dlt.common.destination import DestinationCapabilitiesContext
-from dlt.common.destination.reference import FollowupJob, NewLoadJob, TLoadJobState, LoadJob, CredentialsConfiguration
+from dlt.common.destination.reference import (
+    FollowupJob,
+    NewLoadJob,
+    TLoadJobState,
+    LoadJob,
+    CredentialsConfiguration,
+)
 from dlt.common.configuration.specs import AwsCredentialsWithoutDefaults
 from dlt.common.data_types import TDataType
 from dlt.common.storages.file_storage import FileStorage
@@ -45,14 +51,20 @@ SNOW_TO_SCT: Dict[str, TDataType] = {
     "DATE": "date",
     "TIMESTAMP_TZ": "timestamp",
     "BINARY": "binary",
-    "VARIANT": "complex"
+    "VARIANT": "complex",
 }
 
 
 class SnowflakeLoadJob(LoadJob, FollowupJob):
     def __init__(
-            self, file_path: str, table_name: str, load_id: str, client: SnowflakeSqlClient,
-            stage_name: Optional[str] = None, keep_staged_files: bool = True, staging_credentials: Optional[CredentialsConfiguration] = None
+        self,
+        file_path: str,
+        table_name: str,
+        load_id: str,
+        client: SnowflakeSqlClient,
+        stage_name: Optional[str] = None,
+        keep_staged_files: bool = True,
+        staging_credentials: Optional[CredentialsConfiguration] = None,
     ) -> None:
         file_name = FileStorage.get_file_name_from_file_path(file_path)
         super().__init__(file_name)
@@ -60,8 +72,14 @@ class SnowflakeLoadJob(LoadJob, FollowupJob):
         qualified_table_name = client.make_qualified_table_name(table_name)
 
         # extract and prepare some vars
-        bucket_path = NewReferenceJob.resolve_reference(file_path) if NewReferenceJob.is_reference_job(file_path) else ""
-        file_name = FileStorage.get_file_name_from_file_path(bucket_path) if bucket_path else file_name
+        bucket_path = (
+            NewReferenceJob.resolve_reference(file_path)
+            if NewReferenceJob.is_reference_job(file_path)
+            else ""
+        )
+        file_name = (
+            FileStorage.get_file_name_from_file_path(bucket_path) if bucket_path else file_name
+        )
         from_clause = ""
         credentials_clause = ""
         files_clause = ""
@@ -69,7 +87,11 @@ class SnowflakeLoadJob(LoadJob, FollowupJob):
 
         if bucket_path:
             # s3 credentials case
-            if bucket_path.startswith("s3://") and staging_credentials and isinstance(staging_credentials, AwsCredentialsWithoutDefaults):
+            if (
+                bucket_path.startswith("s3://")
+                and staging_credentials
+                and isinstance(staging_credentials, AwsCredentialsWithoutDefaults)
+            ):
                 credentials_clause = f"""CREDENTIALS=(AWS_KEY_ID='{staging_credentials.aws_access_key_id}' AWS_SECRET_KEY='{staging_credentials.aws_secret_access_key}')"""
                 from_clause = f"FROM '{bucket_path}'"
             else:
@@ -77,14 +99,19 @@ class SnowflakeLoadJob(LoadJob, FollowupJob):
                 bucket_path = bucket_path.replace("gs://", "gcs://")
                 if not stage_name:
                     # when loading from bucket stage must be given
-                    raise LoadJobTerminalException(file_path, f"Cannot load from bucket path {bucket_path} without a stage name. See https://dlthub.com/docs/dlt-ecosystem/destinations/snowflake for instructions on setting up the `stage_name`")
+                    raise LoadJobTerminalException(
+                        file_path,
+                        f"Cannot load from bucket path {bucket_path} without a stage name. See"
+                        " https://dlthub.com/docs/dlt-ecosystem/destinations/snowflake for"
+                        " instructions on setting up the `stage_name`",
+                    )
                 from_clause = f"FROM @{stage_name}/"
                 files_clause = f"FILES = ('{urlparse(bucket_path).path.lstrip('/')}')"
         else:
             # this means we have a local file
             if not stage_name:
                 # Use implicit table stage by default: "SCHEMA_NAME"."%TABLE_NAME"
-                stage_name = client.make_qualified_table_name('%'+table_name)
+                stage_name = client.make_qualified_table_name("%" + table_name)
             stage_file_path = f'@{stage_name}/"{load_id}"/{file_name}'
             from_clause = f"FROM {stage_file_path}"
 
@@ -96,19 +123,19 @@ class SnowflakeLoadJob(LoadJob, FollowupJob):
         with client.begin_transaction():
             # PUT and COPY in one tx if local file, otherwise only copy
             if not bucket_path:
-                client.execute_sql(f'PUT file://{file_path} @{stage_name}/"{load_id}" OVERWRITE = TRUE, AUTO_COMPRESS = FALSE')
-            client.execute_sql(
-                f"""COPY INTO {qualified_table_name}
+                client.execute_sql(
+                    f'PUT file://{file_path} @{stage_name}/"{load_id}" OVERWRITE = TRUE,'
+                    " AUTO_COMPRESS = FALSE"
+                )
+            client.execute_sql(f"""COPY INTO {qualified_table_name}
                 {from_clause}
                 {files_clause}
                 {credentials_clause}
                 FILE_FORMAT = {source_format}
                 MATCH_BY_COLUMN_NAME='CASE_INSENSITIVE'
-                """
-            )
+                """)
             if stage_file_path and not keep_staged_files:
-                client.execute_sql(f'REMOVE {stage_file_path}')
-
+                client.execute_sql(f"REMOVE {stage_file_path}")
 
     def state(self) -> TLoadJobState:
         return "completed"
@@ -116,10 +143,12 @@ class SnowflakeLoadJob(LoadJob, FollowupJob):
     def exception(self) -> str:
         raise NotImplementedError()
 
-class SnowflakeStagingCopyJob(SqlStagingCopyJob):
 
+class SnowflakeStagingCopyJob(SqlStagingCopyJob):
     @classmethod
-    def generate_sql(cls, table_chain: Sequence[TTableSchema], sql_client: SqlClientBase[Any]) -> List[str]:
+    def generate_sql(
+        cls, table_chain: Sequence[TTableSchema], sql_client: SqlClientBase[Any]
+    ) -> List[str]:
         sql: List[str] = []
         for table in table_chain:
             with sql_client.with_staging_dataset(staging=True):
@@ -133,14 +162,10 @@ class SnowflakeStagingCopyJob(SqlStagingCopyJob):
 
 
 class SnowflakeClient(SqlJobClientWithStaging):
-
     capabilities: ClassVar[DestinationCapabilitiesContext] = capabilities()
 
     def __init__(self, schema: Schema, config: SnowflakeClientConfiguration) -> None:
-        sql_client = SnowflakeSqlClient(
-            config.normalize_dataset_name(schema),
-            config.credentials
-        )
+        sql_client = SnowflakeSqlClient(config.normalize_dataset_name(schema), config.credentials)
         super().__init__(schema, config, sql_client)
         self.config: SnowflakeClientConfiguration = config
         self.sql_client: SnowflakeSqlClient = sql_client  # type: ignore
@@ -151,12 +176,14 @@ class SnowflakeClient(SqlJobClientWithStaging):
         if not job:
             job = SnowflakeLoadJob(
                 file_path,
-                table['name'],
+                table["name"],
                 load_id,
                 self.sql_client,
                 stage_name=self.config.stage_name,
                 keep_staged_files=self.config.keep_staged_files,
-                staging_credentials=self.config.staging_config.credentials if self.config.staging_config else None
+                staging_credentials=(
+                    self.config.staging_config.credentials if self.config.staging_config else None
+                ),
             )
         return job
 
@@ -170,10 +197,18 @@ class SnowflakeClient(SqlJobClientWithStaging):
     def _create_optimized_replace_job(self, table_chain: Sequence[TTableSchema]) -> NewLoadJob:
         return SnowflakeStagingCopyJob.from_table_chain(table_chain, self.sql_client)
 
-    def _get_table_update_sql(self, table_name: str, new_columns: Sequence[TColumnSchema], generate_alter: bool, separate_alters: bool = False) -> List[str]:
+    def _get_table_update_sql(
+        self,
+        table_name: str,
+        new_columns: Sequence[TColumnSchema],
+        generate_alter: bool,
+        separate_alters: bool = False,
+    ) -> List[str]:
         sql = super()._get_table_update_sql(table_name, new_columns, generate_alter)
 
-        cluster_list = [self.capabilities.escape_identifier(c['name']) for c in new_columns if c.get('cluster')]
+        cluster_list = [
+            self.capabilities.escape_identifier(c["name"]) for c in new_columns if c.get("cluster")
+        ]
 
         if cluster_list:
             sql[0] = sql[0] + "\nCLUSTER BY (" + ",".join(cluster_list) + ")"
@@ -192,10 +227,10 @@ class SnowflakeClient(SqlJobClientWithStaging):
     def _from_db_type(cls, bq_t: str, precision: Optional[int], scale: Optional[int]) -> TDataType:
         if bq_t == "NUMBER":
             if precision == BIGINT_PRECISION and scale == 0:
-                return 'bigint'
+                return "bigint"
             elif (precision, scale) == cls.capabilities.wei_precision:
-                return 'wei'
-            return 'decimal'
+                return "wei"
+            return "decimal"
         return SNOW_TO_SCT.get(bq_t, "text")
 
     def _get_column_def_sql(self, c: TColumnSchema) -> str:

@@ -108,12 +108,8 @@ def wrap_batch_error(f: TFun) -> TFun:
             message = errors["error"][0]["message"]
             # TODO: actually put the job in failed/retry state and prepare exception message with full info on failing item
             if "invalid" in message and "property" in message and "on class" in message:
-                raise DestinationTerminalException(
-                    f"Batch failed {errors} AND WILL BE RETRIED"
-                )
-            raise DestinationTransientException(
-                f"Batch failed {errors} AND WILL BE RETRIED"
-            )
+                raise DestinationTerminalException(f"Batch failed {errors} AND WILL BE RETRIED")
+            raise DestinationTransientException(f"Batch failed {errors} AND WILL BE RETRIED")
         except Exception:
             raise DestinationTransientException("Batch failed AND WILL BE RETRIED")
 
@@ -173,9 +169,7 @@ class LoadWeaviateJob(LoadJob):
             weaviate_error_retries=weaviate.WeaviateErrorRetryConf(
                 self.client_config.batch_retries
             ),
-            consistency_level=weaviate.ConsistencyLevel[
-                self.client_config.batch_consistency
-            ],
+            consistency_level=weaviate.ConsistencyLevel[self.client_config.batch_consistency],
             num_workers=self.client_config.batch_workers,
             callback=check_batch_result,
         ) as batch:
@@ -189,9 +183,7 @@ class LoadWeaviateJob(LoadJob):
                     if key in data:
                         data[key] = str(ensure_pendulum_datetime(data[key]))
                 if self.unique_identifiers:
-                    uuid = self.generate_uuid(
-                        data, self.unique_identifiers, self.class_name
-                    )
+                    uuid = self.generate_uuid(data, self.unique_identifiers, self.class_name)
                 else:
                     uuid = None
 
@@ -263,9 +255,7 @@ class WeaviateClient(JobClientBase):
 
     def get_class_schema(self, table_name: str) -> Dict[str, Any]:
         """Get the Weaviate class schema for a table."""
-        return cast(
-            Dict[str, Any], self.db_client.schema.get(self.make_full_name(table_name))
-        )
+        return cast(Dict[str, Any], self.db_client.schema.get(self.make_full_name(table_name)))
 
     def create_class(
         self, class_schema: Dict[str, Any], full_class_name: Optional[str] = None
@@ -288,18 +278,14 @@ class WeaviateClient(JobClientBase):
 
         self.db_client.schema.create_class(updated_schema)
 
-    def create_class_property(
-        self, class_name: str, prop_schema: Dict[str, Any]
-    ) -> None:
+    def create_class_property(self, class_name: str, prop_schema: Dict[str, Any]) -> None:
         """Create a Weaviate class property.
 
         Args:
             class_name: The name of the class to create the property on.
             prop_schema: The property schema to create.
         """
-        self.db_client.schema.property.create(
-            self.make_full_name(class_name), prop_schema
-        )
+        self.db_client.schema.property.create(self.make_full_name(class_name), prop_schema)
 
     def delete_class(self, class_name: str) -> None:
         """Delete a Weaviate class.
@@ -405,14 +391,14 @@ class WeaviateClient(JobClientBase):
         if schema_info is None:
             logger.info(
                 f"Schema with hash {self.schema.stored_version_hash} "
-                f"not found in the storage. upgrading"
+                "not found in the storage. upgrading"
             )
             self._execute_schema_update(only_tables)
         else:
             logger.info(
                 f"Schema with hash {self.schema.stored_version_hash} "
                 f"inserted at {schema_info.inserted_at} found "
-                f"in storage, no upgrade required"
+                "in storage, no upgrade required"
             )
 
         return applied_update
@@ -420,12 +406,8 @@ class WeaviateClient(JobClientBase):
     def _execute_schema_update(self, only_tables: Iterable[str]) -> None:
         for table_name in only_tables or self.schema.tables:
             exists, existing_columns = self.get_storage_table(table_name)
-            new_columns = self.schema.get_new_table_columns(
-                table_name, existing_columns
-            )
-            logger.info(
-                f"Found {len(new_columns)} updates for {table_name} in {self.schema.name}"
-            )
+            new_columns = self.schema.get_new_table_columns(table_name, existing_columns)
+            logger.info(f"Found {len(new_columns)} updates for {table_name} in {self.schema.name}")
             if len(new_columns) > 0:
                 if exists:
                     for column in new_columns:
@@ -559,9 +541,7 @@ class WeaviateClient(JobClientBase):
             },
         }
 
-    def start_file_load(
-        self, table: TTableSchema, file_path: str, load_id: str
-    ) -> LoadJob:
+    def start_file_load(self, table: TTableSchema, file_path: str, load_id: str) -> LoadJob:
         return LoadWeaviateJob(
             self.schema,
             table,

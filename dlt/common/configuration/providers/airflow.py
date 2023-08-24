@@ -7,11 +7,12 @@ class AirflowSecretsTomlProvider(VaultTomlProvider):
 
     @property
     def name(self) -> str:
-        return 'Airflow Secrets TOML Provider'
+        return "Airflow Secrets TOML Provider"
 
     def _look_vault(self, full_key: str, hint: type) -> str:
         """Get Airflow Variable with given `full_key`, return None if not found"""
         from airflow.models import Variable
+
         return Variable.get(full_key, default_var=None)  # type: ignore
 
     @property

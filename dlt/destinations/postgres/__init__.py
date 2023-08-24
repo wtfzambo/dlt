@@ -12,7 +12,13 @@ from dlt.common.wei import EVM_DECIMAL_PRECISION
 from dlt.destinations.postgres.configuration import PostgresClientConfiguration
 
 
-@with_config(spec=PostgresClientConfiguration, sections=(known_sections.DESTINATION, "postgres",))
+@with_config(
+    spec=PostgresClientConfiguration,
+    sections=(
+        known_sections.DESTINATION,
+        "postgres",
+    ),
+)
 def _configure(config: PostgresClientConfiguration = config.value) -> PostgresClientConfiguration:
     return config
 
@@ -27,7 +33,7 @@ def capabilities() -> DestinationCapabilitiesContext:
     caps.escape_identifier = escape_postgres_identifier
     caps.escape_literal = escape_postgres_literal
     caps.decimal_precision = (DEFAULT_NUMERIC_PRECISION, DEFAULT_NUMERIC_SCALE)
-    caps.wei_precision = (2*EVM_DECIMAL_PRECISION, EVM_DECIMAL_PRECISION)
+    caps.wei_precision = (2 * EVM_DECIMAL_PRECISION, EVM_DECIMAL_PRECISION)
     caps.max_identifier_length = 63
     caps.max_column_identifier_length = 63
     caps.max_query_length = 32 * 1024 * 1024
@@ -39,7 +45,9 @@ def capabilities() -> DestinationCapabilitiesContext:
     return caps
 
 
-def client(schema: Schema, initial_config: DestinationClientConfiguration = config.value) -> JobClientBase:
+def client(
+    schema: Schema, initial_config: DestinationClientConfiguration = config.value
+) -> JobClientBase:
     # import client when creating instance so capabilities and config specs can be accessed without dependencies installed
     from dlt.destinations.postgres.postgres import PostgresClient
 

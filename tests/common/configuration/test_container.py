@@ -6,7 +6,11 @@ from dlt.common.configuration.providers.context import ContextProvider
 from dlt.common.configuration.resolve import resolve_configuration
 from dlt.common.configuration.specs import BaseConfiguration, ContainerInjectableContext
 from dlt.common.configuration.container import Container
-from dlt.common.configuration.exceptions import ConfigFieldMissingException, ContainerInjectableContextMangled, ContextDefaultCannotBeCreated
+from dlt.common.configuration.exceptions import (
+    ConfigFieldMissingException,
+    ContainerInjectableContextMangled,
+    ContextDefaultCannotBeCreated,
+)
 
 from tests.utils import preserve_environ
 from tests.common.configuration.utils import environment
@@ -27,7 +31,6 @@ class EmbeddedWithInjectableContext(BaseConfiguration):
 
 @configspec
 class NoDefaultInjectableContext(ContainerInjectableContext):
-
     can_create_default: ClassVar[bool] = False
 
 

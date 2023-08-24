@@ -2,13 +2,24 @@ import pytest
 from typing import Any, Optional
 from dlt.common.configuration.container import Container
 
-from dlt.common.configuration import configspec, ConfigFieldMissingException, resolve, inject_section
+from dlt.common.configuration import (
+    configspec,
+    ConfigFieldMissingException,
+    resolve,
+    inject_section,
+)
 from dlt.common.configuration.providers.provider import ConfigProvider
 from dlt.common.configuration.specs import BaseConfiguration, ConfigSectionContext
 from dlt.common.configuration.exceptions import LookupTrace
 
 from tests.utils import preserve_environ
-from tests.common.configuration.utils import MockProvider, SectionedConfiguration, environment, mock_provider, env_provider
+from tests.common.configuration.utils import (
+    MockProvider,
+    SectionedConfiguration,
+    environment,
+    mock_provider,
+    env_provider,
+)
 
 
 @configspec
@@ -52,7 +63,9 @@ def test_sectioned_configuration(environment: Any, env_provider: ConfigProvider)
     traces = exc_val.value.traces["password"]
     # only one provider and section was tried
     assert len(traces) == 1
-    assert traces[0] == LookupTrace("Environment Variables", ["DLT_TEST"], "DLT_TEST__PASSWORD", None)
+    assert traces[0] == LookupTrace(
+        "Environment Variables", ["DLT_TEST"], "DLT_TEST__PASSWORD", None
+    )
     # assert traces[1] == LookupTrace("secrets.toml", ["DLT_TEST"], "DLT_TEST.password", None)
     # assert traces[2] == LookupTrace("config.toml", ["DLT_TEST"], "DLT_TEST.password", None)
 
@@ -108,7 +121,14 @@ def test_explicit_sections_with_sectioned_config(mock_provider: MockProvider) ->
     assert mock_provider.last_sections == [("ns1",), (), ("ns1", "DLT_TEST"), ("DLT_TEST",)]
     mock_provider.reset_stats()
     resolve.resolve_configuration(SectionedConfiguration(), sections=("ns1", "ns2"))
-    assert mock_provider.last_sections == [("ns1", "ns2"), ("ns1",), (), ("ns1", "ns2", "DLT_TEST"), ("ns1", "DLT_TEST"), ("DLT_TEST",)]
+    assert mock_provider.last_sections == [
+        ("ns1", "ns2"),
+        ("ns1",),
+        (),
+        ("ns1", "ns2", "DLT_TEST"),
+        ("ns1", "DLT_TEST"),
+        ("DLT_TEST",),
+    ]
 
 
 def test_overwrite_config_section_from_embedded(mock_provider: MockProvider) -> None:
@@ -134,7 +154,13 @@ def test_explicit_sections_from_embedded_config(mock_provider: MockProvider) -> 
     # embedded section inner of explicit
     mock_provider.reset_stats()
     resolve.resolve_configuration(EmbeddedConfiguration(), sections=("ns1",))
-    assert mock_provider.last_sections == [("ns1", "sv_config",), ("sv_config",)]
+    assert mock_provider.last_sections == [
+        (
+            "ns1",
+            "sv_config",
+        ),
+        ("sv_config",),
+    ]
 
 
 def test_ignore_embedded_section_by_field_name(mock_provider: MockProvider) -> None:
@@ -155,7 +181,11 @@ def test_ignore_embedded_section_by_field_name(mock_provider: MockProvider) -> N
     mock_provider.reset_stats()
     mock_provider.return_value_on = ("DLT_TEST",)
     resolve.resolve_configuration(EmbeddedWithIgnoredEmbeddedConfiguration())
-    assert mock_provider.last_sections == [('ignored_embedded',), ('ignored_embedded', 'DLT_TEST'), ('DLT_TEST',)]
+    assert mock_provider.last_sections == [
+        ("ignored_embedded",),
+        ("ignored_embedded", "DLT_TEST"),
+        ("DLT_TEST",),
+    ]
 
 
 def test_injected_sections(mock_provider: MockProvider) -> None:
@@ -173,7 +203,12 @@ def test_injected_sections(mock_provider: MockProvider) -> None:
         mock_provider.reset_stats()
         mock_provider.return_value_on = ("DLT_TEST",)
         resolve.resolve_configuration(SectionedConfiguration())
-        assert mock_provider.last_sections == [("inj-ns1",), (), ("inj-ns1", "DLT_TEST"), ("DLT_TEST",)]
+        assert mock_provider.last_sections == [
+            ("inj-ns1",),
+            (),
+            ("inj-ns1", "DLT_TEST"),
+            ("DLT_TEST",),
+        ]
         # injected section inner of ns coming from embedded config
         mock_provider.reset_stats()
         mock_provider.return_value_on = ()
@@ -195,7 +230,7 @@ def test_section_context() -> None:
     with pytest.raises(ValueError):
         ConfigSectionContext(sections=()).source_name()
     with pytest.raises(ValueError):
-        ConfigSectionContext(sections=("sources", )).source_name()
+        ConfigSectionContext(sections=("sources",)).source_name()
     with pytest.raises(ValueError):
         ConfigSectionContext(sections=("sources", "modules")).source_name()
 
@@ -220,7 +255,7 @@ def test_section_with_pipeline_name(mock_provider: MockProvider) -> None:
         # PIPE section is exhausted then another lookup without PIPE
         assert mock_provider.last_sections == [("PIPE", "ns1"), ("PIPE",), ("ns1",), ()]
 
-        mock_provider.return_value_on = ("PIPE", )
+        mock_provider.return_value_on = ("PIPE",)
         mock_provider.reset_stats()
         resolve.resolve_configuration(SingleValConfiguration(), sections=("ns1",))
         assert mock_provider.last_sections == [("PIPE", "ns1"), ("PIPE",)]
@@ -236,10 +271,12 @@ def test_section_with_pipeline_name(mock_provider: MockProvider) -> None:
         mock_provider.reset_stats()
         resolve.resolve_configuration(SectionedConfiguration())
         # first the whole SectionedConfiguration is looked under key DLT_TEST (sections: ('PIPE',), ()), then fields of SectionedConfiguration
-        assert mock_provider.last_sections == [('PIPE',), (), ("PIPE", "DLT_TEST"), ("DLT_TEST",)]
+        assert mock_provider.last_sections == [("PIPE",), (), ("PIPE", "DLT_TEST"), ("DLT_TEST",)]
 
     # with pipeline and injected sections
-    with container.injectable_context(ConfigSectionContext(pipeline_name="PIPE", sections=("inj-ns1",))):
+    with container.injectable_context(
+        ConfigSectionContext(pipeline_name="PIPE", sections=("inj-ns1",))
+    ):
         mock_provider.return_value_on = ()
         mock_provider.reset_stats()
         resolve.resolve_configuration(SingleValConfiguration())

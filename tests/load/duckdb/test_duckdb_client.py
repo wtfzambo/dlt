@@ -5,10 +5,16 @@ import dlt
 from dlt.common.configuration.resolve import resolve_configuration
 from dlt.common.configuration.utils import get_resolved_traces
 
-from dlt.destinations.duckdb.configuration import DUCK_DB_NAME, DuckDbClientConfiguration, DuckDbCredentials, DEFAULT_DUCK_DB_NAME
+from dlt.destinations.duckdb.configuration import (
+    DUCK_DB_NAME,
+    DuckDbClientConfiguration,
+    DuckDbCredentials,
+    DEFAULT_DUCK_DB_NAME,
+)
 
 from tests.load.pipeline.utils import drop_pipeline, assert_table
 from tests.utils import patch_home_dir, autouse_test_storage, preserve_environ, TEST_STORAGE_ROOT
+
 
 @pytest.fixture(autouse=True)
 def delete_default_duckdb_credentials() -> None:
@@ -66,7 +72,9 @@ def test_duckdb_database_path() -> None:
             os.unlink(db_path)
 
     # test special :pipeline: path to create in pipeline folder
-    c = resolve_configuration(DuckDbClientConfiguration(dataset_name="test_dataset", credentials=":pipeline:"))
+    c = resolve_configuration(
+        DuckDbClientConfiguration(dataset_name="test_dataset", credentials=":pipeline:")
+    )
     db_path = os.path.abspath(os.path.join(p.working_dir, DEFAULT_DUCK_DB_NAME))
     assert c.credentials.database.lower() == db_path.lower()
     # connect
@@ -78,7 +86,11 @@ def test_duckdb_database_path() -> None:
 
     # provide relative path
     db_path = "_storage/test_quack.duckdb"
-    c = resolve_configuration(DuckDbClientConfiguration(dataset_name="test_dataset", credentials="duckdb:///_storage/test_quack.duckdb"))
+    c = resolve_configuration(
+        DuckDbClientConfiguration(
+            dataset_name="test_dataset", credentials="duckdb:///_storage/test_quack.duckdb"
+        )
+    )
     assert c.credentials.database.lower() == os.path.abspath(db_path).lower()
     conn = c.credentials.borrow_conn(read_only=False)
     c.credentials.return_conn(conn)
@@ -87,7 +99,9 @@ def test_duckdb_database_path() -> None:
 
     # provide absolute path
     db_path = os.path.abspath("_storage/abs_test_quack.duckdb")
-    c = resolve_configuration(DuckDbClientConfiguration(dataset_name="test_dataset", credentials=f"duckdb:///{db_path}"))
+    c = resolve_configuration(
+        DuckDbClientConfiguration(dataset_name="test_dataset", credentials=f"duckdb:///{db_path}")
+    )
     assert os.path.isabs(c.credentials.database)
     assert c.credentials.database.lower() == db_path.lower()
     conn = c.credentials.borrow_conn(read_only=False)
@@ -97,7 +111,9 @@ def test_duckdb_database_path() -> None:
 
     # set just path as credentials
     db_path = "_storage/path_test_quack.duckdb"
-    c = resolve_configuration(DuckDbClientConfiguration(dataset_name="test_dataset", credentials=db_path))
+    c = resolve_configuration(
+        DuckDbClientConfiguration(dataset_name="test_dataset", credentials=db_path)
+    )
     assert c.credentials.database.lower() == os.path.abspath(db_path).lower()
     conn = c.credentials.borrow_conn(read_only=False)
     c.credentials.return_conn(conn)
@@ -105,7 +121,9 @@ def test_duckdb_database_path() -> None:
     p = p.drop()
 
     db_path = os.path.abspath("_storage/abs_path_test_quack.duckdb")
-    c = resolve_configuration(DuckDbClientConfiguration(dataset_name="test_dataset", credentials=db_path))
+    c = resolve_configuration(
+        DuckDbClientConfiguration(dataset_name="test_dataset", credentials=db_path)
+    )
     assert os.path.isabs(c.credentials.database)
     assert c.credentials.database.lower() == db_path.lower()
     conn = c.credentials.borrow_conn(read_only=False)
@@ -117,7 +135,9 @@ def test_duckdb_database_path() -> None:
     import duckdb
 
     with pytest.raises(duckdb.IOException):
-        c = resolve_configuration(DuckDbClientConfiguration(dataset_name="test_dataset", credentials=TEST_STORAGE_ROOT))
+        c = resolve_configuration(
+            DuckDbClientConfiguration(dataset_name="test_dataset", credentials=TEST_STORAGE_ROOT)
+        )
         conn = c.credentials.borrow_conn(read_only=False)
 
 
@@ -202,7 +222,9 @@ def test_external_duckdb_database() -> None:
 
     # pass explicit in memory database
     conn = duckdb.connect(":memory:")
-    c = resolve_configuration(DuckDbClientConfiguration(dataset_name="test_dataset", credentials=conn))
+    c = resolve_configuration(
+        DuckDbClientConfiguration(dataset_name="test_dataset", credentials=conn)
+    )
     assert c.credentials._conn_borrows == 0
     assert c.credentials._conn is conn
     int_conn = c.credentials.borrow_conn(read_only=False)
@@ -213,6 +235,7 @@ def test_external_duckdb_database() -> None:
     assert c.credentials._conn_owner is False
     assert hasattr(c.credentials, "_conn")
     conn.close()
+
 
 def test_default_duckdb_dataset_name() -> None:
     # Check if dataset_name does not collide with pipeline_name

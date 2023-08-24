@@ -9,7 +9,14 @@ from dlt.common.storages.file_storage import FileStorage
 
 from dlt.cli import echo, init_command, pipeline_command
 
-from tests.cli.utils import echo_default_choice, repo_dir, project_files, cloned_init_repo, get_repo_dir, get_project_files
+from tests.cli.utils import (
+    echo_default_choice,
+    repo_dir,
+    project_files,
+    cloned_init_repo,
+    get_repo_dir,
+    get_project_files,
+)
 
 
 def test_pipeline_command_operations(repo_dir: str, project_files: FileStorage) -> None:
@@ -23,7 +30,9 @@ def test_pipeline_command_operations(repo_dir: str, project_files: FileStorage) 
         print(e)
 
     # now run the pipeline
-    os.environ.pop("DESTINATION__DUCKDB__CREDENTIALS", None)  # settings from local project (secrets.toml etc.)
+    os.environ.pop(
+        "DESTINATION__DUCKDB__CREDENTIALS", None
+    )  # settings from local project (secrets.toml etc.)
     venv = Venv.restore_current()
     try:
         print(venv.run_script("chess_pipeline.py"))
@@ -113,7 +122,9 @@ def test_pipeline_command_operations(repo_dir: str, project_files: FileStorage) 
 
     with io.StringIO() as buf, contextlib.redirect_stdout(buf):
         with echo.always_choose(False, True):
-            pipeline_command.pipeline_command("drop", "chess_pipeline", None, 0, resources=["players_games"])
+            pipeline_command.pipeline_command(
+                "drop", "chess_pipeline", None, 0, resources=["players_games"]
+            )
 
         _out = buf.getvalue()
         assert "Selected resource(s): ['players_games']" in _out
@@ -124,9 +135,17 @@ def test_pipeline_command_operations(repo_dir: str, project_files: FileStorage) 
 
     with io.StringIO() as buf, contextlib.redirect_stdout(buf):
         # Test sync destination and drop when local state is missing
-        pipeline._pipeline_storage.delete_folder('', recursively=True)
+        pipeline._pipeline_storage.delete_folder("", recursively=True)
         with echo.always_choose(False, True):
-            pipeline_command.pipeline_command("drop", "chess_pipeline", None, 0, destination=pipeline.destination, dataset_name=pipeline.dataset_name, resources=["players_profiles"])
+            pipeline_command.pipeline_command(
+                "drop",
+                "chess_pipeline",
+                None,
+                0,
+                destination=pipeline.destination,
+                dataset_name=pipeline.dataset_name,
+                resources=["players_profiles"],
+            )
         _out = buf.getvalue()
 
         assert "could not be restored: the pipeline was not found in " in _out

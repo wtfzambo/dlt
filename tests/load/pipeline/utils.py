@@ -18,6 +18,7 @@ from tests.load.utils import DestinationTestConfiguration, destinations_configs
 if TYPE_CHECKING:
     from dlt.destinations.filesystem.filesystem import FilesystemClient
 
+
 @pytest.fixture(autouse=True)
 def drop_pipeline() -> Iterator[None]:
     yield
@@ -75,19 +76,39 @@ def drop_active_pipeline_data() -> None:
 def _is_filesystem(p: dlt.Pipeline) -> bool:
     if not p.destination:
         return False
-    return p.destination.__name__.rsplit('.', 1)[-1] == 'filesystem'
+    return p.destination.__name__.rsplit(".", 1)[-1] == "filesystem"
 
 
-def assert_table(p: dlt.Pipeline, table_name: str, table_data: List[Any], schema_name: str = None, info: LoadInfo = None) -> None:
+def assert_table(
+    p: dlt.Pipeline,
+    table_name: str,
+    table_data: List[Any],
+    schema_name: str = None,
+    info: LoadInfo = None,
+) -> None:
     func = _assert_table_fs if _is_filesystem(p) else _assert_table_sql
     func(p, table_name, table_data, schema_name, info)
 
 
-def _assert_table_sql(p: dlt.Pipeline, table_name: str, table_data: List[Any], schema_name: str = None, info: LoadInfo = None) -> None:
-    assert_query_data(p, f"SELECT * FROM {table_name} ORDER BY 1 NULLS FIRST", table_data, schema_name, info)
+def _assert_table_sql(
+    p: dlt.Pipeline,
+    table_name: str,
+    table_data: List[Any],
+    schema_name: str = None,
+    info: LoadInfo = None,
+) -> None:
+    assert_query_data(
+        p, f"SELECT * FROM {table_name} ORDER BY 1 NULLS FIRST", table_data, schema_name, info
+    )
 
 
-def _assert_table_fs(p: dlt.Pipeline, table_name: str, table_data: List[Any], schema_name: str = None, info: LoadInfo = None) -> None:
+def _assert_table_fs(
+    p: dlt.Pipeline,
+    table_name: str,
+    table_data: List[Any],
+    schema_name: str = None,
+    info: LoadInfo = None,
+) -> None:
     """Assert table is loaded to filesystem destination"""
     client: FilesystemClient = p._destination_client(schema_name)  # type: ignore[assignment]
     # get table directory
@@ -107,7 +128,9 @@ def select_data(p: dlt.Pipeline, sql: str, schema_name: str = None) -> List[Sequ
             return list(cur.fetchall())
 
 
-def assert_query_data(p: dlt.Pipeline, sql: str, table_data: List[Any], schema_name: str = None, info: LoadInfo = None) -> None:
+def assert_query_data(
+    p: dlt.Pipeline, sql: str, table_data: List[Any], schema_name: str = None, info: LoadInfo = None
+) -> None:
     """Asserts that query selecting single column of values matches `table_data`. If `info` is provided, second column must contain one of load_ids in `info`"""
     rows = select_data(p, sql, schema_name)
     assert len(rows) == len(table_data)
@@ -162,6 +185,7 @@ def load_file(path: str, file: str) -> Tuple[str, List[Dict[str, Any]]]:
     # load parquet
     elif ext == "parquet":
         import pyarrow.parquet as pq
+
         with open(full_path, "rb") as f:
             table = pq.read_table(f)
             cols = table.column_names
@@ -184,7 +208,9 @@ def load_files(p: dlt.Pipeline, *table_names: str) -> Dict[str, List[Dict[str, A
     """For now this will expect the standard layout in the filesystem destination, if changed the results will not be correct"""
     client: FilesystemClient = p._destination_client()  # type: ignore[assignment]
     result = {}
-    for basedir, _dirs, files  in client.fs_client.walk(client.dataset_path, detail=False, refresh=True):
+    for basedir, _dirs, files in client.fs_client.walk(
+        client.dataset_path, detail=False, refresh=True
+    ):
         for file in files:
             table_name, items = load_file(basedir, file)
             if table_name not in table_names:
@@ -206,7 +232,9 @@ def load_table_counts(p: dlt.Pipeline, *table_names: str) -> DictStrAny:
 
     # try sql, could be other destination though
     try:
-        query = "\nUNION ALL\n".join([f"SELECT '{name}' as name, COUNT(1) as c FROM {name}" for name in table_names])
+        query = "\nUNION ALL\n".join(
+            [f"SELECT '{name}' as name, COUNT(1) as c FROM {name}" for name in table_names]
+        )
         with p.sql_client() as c:
             with c.execute_query(query) as cur:
                 rows = list(cur.fetchall())
@@ -223,7 +251,6 @@ def load_table_counts(p: dlt.Pipeline, *table_names: str) -> DictStrAny:
 
 
 def load_tables_to_dicts(p: dlt.Pipeline, *table_names: str) -> Dict[str, List[Dict[str, Any]]]:
-
     # try sql, could be other destination though
     try:
         result = {}
@@ -246,9 +273,17 @@ def load_tables_to_dicts(p: dlt.Pipeline, *table_names: str) -> Dict[str, List[D
     # try files
     return load_files(p, *table_names)
 
-def load_table_distinct_counts(p: dlt.Pipeline, distinct_column: str, *table_names: str) -> DictStrAny:
+
+def load_table_distinct_counts(
+    p: dlt.Pipeline, distinct_column: str, *table_names: str
+) -> DictStrAny:
     """Returns counts of distinct values for column `distinct_column` for `table_names` as dict"""
-    query = "\nUNION ALL\n".join([f"SELECT '{name}' as name, COUNT(DISTINCT {distinct_column}) as c FROM {name}" for name in table_names])
+    query = "\nUNION ALL\n".join(
+        [
+            f"SELECT '{name}' as name, COUNT(DISTINCT {distinct_column}) as c FROM {name}"
+            for name in table_names
+        ]
+    )
     with p.sql_client() as c:
         with c.execute_query(query) as cur:
             rows = list(cur.fetchall())

@@ -49,6 +49,7 @@ def workermethod(f: TFun) -> TFun:
     Returns:
         TFun: wrapped worker function
     """
+
     @wraps(f)
     def _wrap(rid: Union[int, Runnable[TPool]], *args: Any, **kwargs: Any) -> Any:
         if isinstance(rid, int):
@@ -94,4 +95,3 @@ def workermethod(f: TFun) -> TFun:
 #         return f(config, *args, **kwargs)
 
 #     return _wrap  # type: ignore
-

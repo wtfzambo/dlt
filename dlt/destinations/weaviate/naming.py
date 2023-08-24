@@ -7,11 +7,7 @@ from dlt.common.normalizers.naming.snake_case import NamingConvention as SnakeCa
 class NamingConvention(SnakeCaseNamingConvention):
     """Normalizes identifiers according to Weaviate documentation: https://weaviate.io/developers/weaviate/config-refs/schema#class"""
 
-    RESERVED_PROPERTIES = {
-        "id": "__id",
-        "_id": "___id",
-        "_additional": "__additional"
-    }
+    RESERVED_PROPERTIES = {"id": "__id", "_id": "___id", "_additional": "__additional"}
     _RE_UNDERSCORES = re.compile("([^_])__+")
     _STARTS_DIGIT = re.compile("^[0-9]")
     _STARTS_NON_LETTER = re.compile("^[0-9_]")
@@ -32,7 +28,10 @@ class NamingConvention(SnakeCaseNamingConvention):
         identifier = BaseNamingConvention.normalize_identifier(self, identifier)
         norm_identifier = self._base_normalize(identifier)
         # norm_identifier = norm_identifier.strip("_")
-        norm_identifier = "".join(s[1:2].upper() + s[2:] if s and s[0] == "_" else s for s in self._SPLIT_UNDERSCORE_NON_CAP.split(norm_identifier))
+        norm_identifier = "".join(
+            s[1:2].upper() + s[2:] if s and s[0] == "_" else s
+            for s in self._SPLIT_UNDERSCORE_NON_CAP.split(norm_identifier)
+        )
         norm_identifier = norm_identifier[0].upper() + norm_identifier[1:]
         if self._STARTS_NON_LETTER.match(norm_identifier):
             norm_identifier = "C" + norm_identifier

@@ -14,7 +14,19 @@ from dlt.common.schema import Schema
 from dlt.common.schema.utils import new_table
 
 from dlt.cli.source_detection import detect_source_configs
-from dlt.extract.exceptions import ExplicitSourceNameInvalid, InvalidResourceDataTypeFunctionNotAGenerator, InvalidResourceDataTypeIsNone, ParametrizedResourceUnbound, PipeNotBoundToData, ResourceFunctionExpected, ResourceInnerCallableConfigWrapDisallowed, SourceDataIsNone, SourceIsAClassTypeError, SourceNotAFunction, SourceSchemaNotAvailable
+from dlt.extract.exceptions import (
+    ExplicitSourceNameInvalid,
+    InvalidResourceDataTypeFunctionNotAGenerator,
+    InvalidResourceDataTypeIsNone,
+    ParametrizedResourceUnbound,
+    PipeNotBoundToData,
+    ResourceFunctionExpected,
+    ResourceInnerCallableConfigWrapDisallowed,
+    SourceDataIsNone,
+    SourceIsAClassTypeError,
+    SourceNotAFunction,
+    SourceSchemaNotAvailable,
+)
 from dlt.extract.source import DltResource, DltSource
 from dlt.common.schema.exceptions import InvalidSchemaName
 
@@ -31,11 +43,9 @@ def test_none_returning_source() -> None:
     with pytest.raises(SourceDataIsNone):
         dlt.source(empty)()
 
-
     @dlt.source
     def deco_empty() -> None:
         pass
-
 
     with pytest.raises(SourceDataIsNone):
         deco_empty()
@@ -69,7 +79,6 @@ def test_load_schema_for_callable() -> None:
 
 
 def test_unbound_parametrized_transformer() -> None:
-
     empty_pipe = DltResource.Empty._pipe
     assert empty_pipe.is_empty
     assert not empty_pipe.is_data_bound
@@ -113,7 +122,7 @@ def test_transformer_no_parens() -> None:
     bound_r = dlt.resource([1, 2, 3], name="data")
 
     @dlt.transformer
-    def empty_t_1(item, meta = None):
+    def empty_t_1(item, meta=None):
         yield "a" * item
 
     assert list(bound_r | empty_t_1) == ["a", "aa", "aaa"]
@@ -127,7 +136,6 @@ def test_transformer_no_parens() -> None:
 
 
 def test_source_name_is_invalid_schema_name() -> None:
-
     def camelCase():
         return dlt.resource([1, 2, 3], name="resource")
 
@@ -152,10 +160,13 @@ def test_source_name_is_invalid_schema_name() -> None:
 
 
 def test_resource_name_is_invalid_table_name_and_columns() -> None:
-
     @dlt.source
     def camelCase():
-        return dlt.resource([1, 2, 3], name="Resource !", columns={"KA!AX": {"name": "DIF!", "nullable": False, "data_type": "text"}})
+        return dlt.resource(
+            [1, 2, 3],
+            name="Resource !",
+            columns={"KA!AX": {"name": "DIF!", "nullable": False, "data_type": "text"}},
+        )
 
     s = camelCase()
     assert s.resources["Resource !"].selected
@@ -170,10 +181,11 @@ def test_resource_name_is_invalid_table_name_and_columns() -> None:
 
 
 def test_columns_argument() -> None:
-
-    @dlt.resource(name="user", columns={"tags": {"data_type": "complex", "x-extra": "x-annotation"}})
+    @dlt.resource(
+        name="user", columns={"tags": {"data_type": "complex", "x-extra": "x-annotation"}}
+    )
     def get_users():
-        yield {"u": "u", "tags": [1, 2 ,3]}
+        yield {"u": "u", "tags": [1, 2, 3]}
 
     t = get_users().table_schema()
     # nullable is added
@@ -205,6 +217,7 @@ def test_resource_name_from_generator() -> None:
 def test_source_sections() -> None:
     # source in __init__.py of module
     from tests.extract.cases.section_source import init_source_f_1, init_resource_f_2
+
     # source in file module with name override
     from tests.extract.cases.section_source.named_module import source_f_1, resource_f_2
 
@@ -234,21 +247,27 @@ def test_source_sections() -> None:
     assert list(resource_f_2()) == ["NAME OVERRIDDEN LEVEL"]
 
     # values in function name section
-    os.environ[f"{known_sections.SOURCES.upper()}__SECTION_SOURCE__INIT_SOURCE_F_1__VAL"] = "SECTION INIT_SOURCE_F_1 LEVEL"
+    os.environ[f"{known_sections.SOURCES.upper()}__SECTION_SOURCE__INIT_SOURCE_F_1__VAL"] = (
+        "SECTION INIT_SOURCE_F_1 LEVEL"
+    )
     assert list(init_source_f_1()) == ["SECTION INIT_SOURCE_F_1 LEVEL"]
-    os.environ[f"{known_sections.SOURCES.upper()}__SECTION_SOURCE__INIT_RESOURCE_F_2__VAL"] = "SECTION INIT_RESOURCE_F_2 LEVEL"
+    os.environ[f"{known_sections.SOURCES.upper()}__SECTION_SOURCE__INIT_RESOURCE_F_2__VAL"] = (
+        "SECTION INIT_RESOURCE_F_2 LEVEL"
+    )
     assert list(init_resource_f_2()) == ["SECTION INIT_RESOURCE_F_2 LEVEL"]
-    os.environ[f"{known_sections.SOURCES.upper()}__NAME_OVERRIDDEN__SOURCE_F_1__VAL"] = "NAME SOURCE_F_1 LEVEL"
+    os.environ[f"{known_sections.SOURCES.upper()}__NAME_OVERRIDDEN__SOURCE_F_1__VAL"] = (
+        "NAME SOURCE_F_1 LEVEL"
+    )
     assert list(source_f_1()) == ["NAME SOURCE_F_1 LEVEL"]
-    os.environ[f"{known_sections.SOURCES.upper()}__NAME_OVERRIDDEN__RESOURCE_F_2__VAL"] = "NAME RESOURCE_F_2 LEVEL"
+    os.environ[f"{known_sections.SOURCES.upper()}__NAME_OVERRIDDEN__RESOURCE_F_2__VAL"] = (
+        "NAME RESOURCE_F_2 LEVEL"
+    )
     assert list(resource_f_2()) == ["NAME RESOURCE_F_2 LEVEL"]
 
 
 def test_source_explicit_section() -> None:
-
     @dlt.source(section="custom_section", schema=Schema("custom_section"))
     def with_section(secret=dlt.secrets.value):
-
         @dlt.resource
         def mod_state():
             dlt.current.source_state()["val"] = secret
@@ -265,7 +284,6 @@ def test_source_explicit_section() -> None:
 
 
 def test_resource_section() -> None:
-
     r = dlt.resource([1, 2, 3], name="T")
     assert r.name == "T"
     assert r.section is None
@@ -278,14 +296,23 @@ def test_resource_section() -> None:
     assert r.section == "test_decorators"
 
     from tests.extract.cases.section_source.external_resources import init_resource_f_2
+
     assert init_resource_f_2.name == "init_resource_f_2"
     assert init_resource_f_2.section == "section_source"
 
 
 def test_resources_injected_sections() -> None:
-    from tests.extract.cases.section_source.external_resources import with_external, with_bound_external, init_resource_f_2, resource_f_2
+    from tests.extract.cases.section_source.external_resources import (
+        with_external,
+        with_bound_external,
+        init_resource_f_2,
+        resource_f_2,
+    )
+
     # standalone resources must accept the injected sections for lookups
-    os.environ["SOURCES__EXTERNAL_RESOURCES__SOURCE_VAL"] = "SOURCES__EXTERNAL_RESOURCES__SOURCE_VAL"
+    os.environ["SOURCES__EXTERNAL_RESOURCES__SOURCE_VAL"] = (
+        "SOURCES__EXTERNAL_RESOURCES__SOURCE_VAL"
+    )
     os.environ["SOURCES__EXTERNAL_RESOURCES__VAL"] = "SOURCES__EXTERNAL_RESOURCES__VAL"
     os.environ["SOURCES__SECTION_SOURCE__VAL"] = "SOURCES__SECTION_SOURCE__VAL"
     os.environ["SOURCES__NAME_OVERRIDDEN__VAL"] = "SOURCES__NAME_OVERRIDDEN__VAL"
@@ -300,43 +327,58 @@ def test_resources_injected_sections() -> None:
         "SOURCES__EXTERNAL_RESOURCES__SOURCE_VAL",
         "SOURCES__EXTERNAL_RESOURCES__SOURCE_VAL",
         "SOURCES__EXTERNAL_RESOURCES__VAL",
-        "SOURCES__EXTERNAL_RESOURCES__VAL"
+        "SOURCES__EXTERNAL_RESOURCES__VAL",
     ]
     # this source will bind external resources before returning them (that is: calling them and obtaining generators)
     # the iterator in the source will force its sections so external resource sections are not used
     s = with_bound_external()
-    assert list(s) == list([
-        "SOURCES__EXTERNAL_RESOURCES__SOURCE_VAL",
-        "SOURCES__EXTERNAL_RESOURCES__SOURCE_VAL",
-        "SOURCES__EXTERNAL_RESOURCES__VAL",
-        "SOURCES__EXTERNAL_RESOURCES__VAL"
-    ])
+    assert list(s) == list(
+        [
+            "SOURCES__EXTERNAL_RESOURCES__SOURCE_VAL",
+            "SOURCES__EXTERNAL_RESOURCES__SOURCE_VAL",
+            "SOURCES__EXTERNAL_RESOURCES__VAL",
+            "SOURCES__EXTERNAL_RESOURCES__VAL",
+        ]
+    )
 
     # inject the source sections like the Pipeline object would
     s = with_external()
     assert s.name == "with_external"
     assert s.section == "external_resources"  # from module name hosting the function
-    with inject_section(ConfigSectionContext(pipeline_name="injected_external", sections=("sources", s.section, s.name))):
+    with inject_section(
+        ConfigSectionContext(
+            pipeline_name="injected_external", sections=("sources", s.section, s.name)
+        )
+    ):
         # now the external sources must adopt the injected namespace
-        assert(list(s)) == [
+        assert (list(s)) == [
             "SOURCES__EXTERNAL_RESOURCES__SOURCE_VAL",
             "SOURCES__EXTERNAL_RESOURCES__SOURCE_VAL",
             "SOURCES__EXTERNAL_RESOURCES__VAL",
-            "SOURCES__EXTERNAL_RESOURCES__VAL"
+            "SOURCES__EXTERNAL_RESOURCES__VAL",
         ]
 
     # now with environ values that specify source/resource name: the module of the source, the name of the resource
-    os.environ["SOURCES__EXTERNAL_RESOURCES__INIT_RESOURCE_F_2__VAL"] = "SOURCES__EXTERNAL_RESOURCES__INIT_RESOURCE_F_2__VAL"
-    os.environ["SOURCES__EXTERNAL_RESOURCES__RESOURCE_F_2__VAL"] = "SOURCES__EXTERNAL_RESOURCES__RESOURCE_F_2__VAL"
+    os.environ["SOURCES__EXTERNAL_RESOURCES__INIT_RESOURCE_F_2__VAL"] = (
+        "SOURCES__EXTERNAL_RESOURCES__INIT_RESOURCE_F_2__VAL"
+    )
+    os.environ["SOURCES__EXTERNAL_RESOURCES__RESOURCE_F_2__VAL"] = (
+        "SOURCES__EXTERNAL_RESOURCES__RESOURCE_F_2__VAL"
+    )
     s = with_external()
-    with inject_section(ConfigSectionContext(pipeline_name="injected_external", sections=("sources", s.section, s.name))):
+    with inject_section(
+        ConfigSectionContext(
+            pipeline_name="injected_external", sections=("sources", s.section, s.name)
+        )
+    ):
         # now the external sources must adopt the injected namespace
-        assert(list(s)) == [
+        assert (list(s)) == [
             "SOURCES__EXTERNAL_RESOURCES__SOURCE_VAL",
             "SOURCES__EXTERNAL_RESOURCES__SOURCE_VAL",
             "SOURCES__EXTERNAL_RESOURCES__INIT_RESOURCE_F_2__VAL",
-            "SOURCES__EXTERNAL_RESOURCES__RESOURCE_F_2__VAL"
+            "SOURCES__EXTERNAL_RESOURCES__RESOURCE_F_2__VAL",
         ]
+
 
 def test_source_schema_context() -> None:
     import dlt
@@ -388,7 +430,6 @@ def test_source_schema_context() -> None:
 
 
 def test_source_state_context() -> None:
-
     @dlt.resource(selected=False)
     def main():
         state = dlt.current.state()
@@ -396,14 +437,14 @@ def test_source_state_context() -> None:
         # increase the multiplier each time state is obtained
         state["mark"] *= 2
         yield [1, 2, 3]
-        assert dlt.state()["mark"] == mark*2
+        assert dlt.state()["mark"] == mark * 2
 
     @dlt.transformer(data_from=main)
     def feeding(item):
         # we must have state
         assert dlt.current.source_state()["mark"] > 1
         mark = dlt.current.source_state()["mark"]
-        yield from map(lambda i: i*mark, item)
+        yield from map(lambda i: i * mark, item)
 
     @dlt.source
     def pass_the_state():
@@ -419,7 +460,6 @@ def test_source_state_context() -> None:
 
 
 def test_source_schema_modified() -> None:
-
     @dlt.source
     def schema_test():
         return dlt.resource(["A", "B"], name="alpha")
@@ -437,13 +477,12 @@ def standalone_resource(secret=dlt.secrets.value, config=dlt.config.value, opt: 
 
 
 def test_spec_generation() -> None:
-
     # inner resource cannot take configuration
 
     with pytest.raises(ResourceInnerCallableConfigWrapDisallowed) as py_ex:
 
         @dlt.resource(write_disposition="merge", primary_key="id")
-        def inner_resource(initial_id = dlt.config.value):
+        def inner_resource(initial_id=dlt.config.value):
             yield [{"id": 1, "name": "row1"}, {"id": 1, "name": "row2"}]
 
     assert py_ex.value.resource_name == "inner_resource"
@@ -472,7 +511,6 @@ def not_args_r():
 
 
 def test_sources_no_arguments() -> None:
-
     @dlt.source
     def no_args():
         return dlt.resource([1, 2], name="data")
@@ -501,7 +539,6 @@ def test_sources_no_arguments() -> None:
 
 
 def test_resource_sets_invalid_write_disposition() -> None:
-
     @dlt.resource(write_disposition="xxxx")
     def invalid_disposition():
         yield from [1, 2, 3]
@@ -513,7 +550,6 @@ def test_resource_sets_invalid_write_disposition() -> None:
 
 
 def test_class_source() -> None:
-
     class _Source:
         def __init__(self, elems: int) -> None:
             self.elems = elems
@@ -527,10 +563,11 @@ def test_class_source() -> None:
     schema = s.discover_schema()
     assert schema.name == "_Source"
     assert "_list" in schema.tables
-    assert list(s) == ['A', 'V', 'A', 'V', 'A', 'V', 'A', 'V']
+    assert list(s) == ["A", "V", "A", "V", "A", "V", "A", "V"]
 
     # CAN'T decorate classes themselves
     with pytest.raises(SourceIsAClassTypeError):
+
         @dlt.source(name="planB")
         class _SourceB:
             def __init__(self, elems: int) -> None:

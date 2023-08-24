@@ -26,7 +26,18 @@ from dlt.common.pipeline import PipelineContext
 TEST_STORAGE_ROOT = "_storage"
 
 # destination constants
-IMPLEMENTED_DESTINATIONS = {"athena", "duckdb", "bigquery", "redshift", "postgres", "snowflake", "filesystem", "weaviate", "dummy", "motherduck"}
+IMPLEMENTED_DESTINATIONS = {
+    "athena",
+    "duckdb",
+    "bigquery",
+    "redshift",
+    "postgres",
+    "snowflake",
+    "filesystem",
+    "weaviate",
+    "dummy",
+    "motherduck",
+}
 NON_SQL_DESTINATIONS = {"filesystem", "weaviate", "dummy", "motherduck"}
 SQL_DESTINATIONS = IMPLEMENTED_DESTINATIONS - NON_SQL_DESTINATIONS
 
@@ -47,6 +58,7 @@ for destination in SQL_DESTINATIONS:
 for destination in ACTIVE_DESTINATIONS:
     assert destination in IMPLEMENTED_DESTINATIONS, f"Unknown active destination {destination}"
 
+
 def TEST_DICT_CONFIG_PROVIDER():
     # add test dictionary provider
     providers_context = Container()[ConfigProvidersContext]
@@ -57,7 +69,8 @@ def TEST_DICT_CONFIG_PROVIDER():
         providers_context.add_provider(provider)
         return provider
 
-class MockHttpResponse():
+
+class MockHttpResponse:
     def __init__(self, status_code: int) -> None:
         self.status_code = status_code
 
@@ -153,15 +166,19 @@ def start_test_telemetry(c: RunConfiguration = None):
     start_telemetry(c)
 
 
-def clean_test_storage(init_normalize: bool = False, init_loader: bool = False, mode: str = "t") -> FileStorage:
+def clean_test_storage(
+    init_normalize: bool = False, init_loader: bool = False, mode: str = "t"
+) -> FileStorage:
     storage = FileStorage(TEST_STORAGE_ROOT, mode, makedirs=True)
     storage.delete_folder("", recursively=True, delete_ro=True)
     storage.create_folder(".")
     if init_normalize:
         from dlt.common.storages import NormalizeStorage
+
         NormalizeStorage(True)
     if init_loader:
         from dlt.common.storages import LoadStorage
+
         LoadStorage(True, "jsonl", LoadStorage.ALL_SUPPORTED_FILE_FORMATS)
     return storage
 
@@ -174,10 +191,12 @@ def create_schema_with_name(schema_name) -> Schema:
 def assert_no_dict_key_starts_with(d: StrAny, key_prefix: str) -> None:
     assert all(not key.startswith(key_prefix) for key in d.keys())
 
+
 def skip_if_not_active(destination: str) -> None:
     assert destination in IMPLEMENTED_DESTINATIONS, f"Unknown skipped destination {destination}"
     if destination not in ACTIVE_DESTINATIONS:
         pytest.skip(f"{destination} not in ACTIVE_DESTINATIONS", allow_module_level=True)
+
 
 skipifspawn = pytest.mark.skipif(
     multiprocessing.get_start_method() != "fork", reason="process fork not supported"
@@ -187,9 +206,7 @@ skipifpypy = pytest.mark.skipif(
     platform.python_implementation() == "PyPy", reason="won't run in PyPy interpreter"
 )
 
-skipifnotwindows = pytest.mark.skipif(
-    platform.system() != "Windows", reason="runs only on windows"
-)
+skipifnotwindows = pytest.mark.skipif(platform.system() != "Windows", reason="runs only on windows")
 
 skipifwindows = pytest.mark.skipif(
     platform.system() == "Windows", reason="does not runs on windows"

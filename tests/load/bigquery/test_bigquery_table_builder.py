@@ -14,6 +14,7 @@ from dlt.destinations.exceptions import DestinationSchemaWillNotUpdate
 
 from tests.load.utils import TABLE_UPDATE
 
+
 @pytest.fixture
 def schema() -> Schema:
     return Schema("event")
@@ -35,7 +36,9 @@ def gcp_client(schema: Schema) -> BigQueryClient:
     # return client without opening connection
     creds = GcpServiceAccountCredentialsWithoutDefaults()
     creds.project_id = "test_project_id"
-    return BigQueryClient(schema, BigQueryClientConfiguration(dataset_name="test_" + uniq_id(), credentials=creds))
+    return BigQueryClient(
+        schema, BigQueryClientConfiguration(dataset_name="test_" + uniq_id(), credentials=creds)
+    )
 
 
 def test_create_table(gcp_client: BigQueryClient) -> None:

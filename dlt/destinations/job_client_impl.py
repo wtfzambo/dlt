@@ -6,19 +6,51 @@ import contextlib
 from copy import copy
 import datetime  # noqa: 251
 from types import TracebackType
-from typing import Any, ClassVar, List, NamedTuple, Optional, Sequence, Tuple, Type, Iterable, Iterator, ContextManager
+from typing import (
+    Any,
+    ClassVar,
+    List,
+    NamedTuple,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Iterable,
+    Iterator,
+    ContextManager,
+)
 import zlib
 import re
 
 from dlt.common import json, pendulum, logger
 from dlt.common.data_types import TDataType
-from dlt.common.schema.typing import COLUMN_HINTS, TColumnSchemaBase, TTableSchema, TWriteDisposition
+from dlt.common.schema.typing import (
+    COLUMN_HINTS,
+    TColumnSchemaBase,
+    TTableSchema,
+    TWriteDisposition,
+)
 from dlt.common.schema.utils import add_missing_hints
 from dlt.common.storages import FileStorage
 from dlt.common.schema import TColumnSchema, Schema, TTableSchemaColumns, TSchemaTables
-from dlt.common.destination.reference import DestinationClientConfiguration, DestinationClientDwhConfiguration, DestinationClientDwhWithStagingConfiguration, NewLoadJob, WithStagingDataset, TLoadJobState, LoadJob, JobClientBase, FollowupJob, CredentialsConfiguration
+from dlt.common.destination.reference import (
+    DestinationClientConfiguration,
+    DestinationClientDwhConfiguration,
+    DestinationClientDwhWithStagingConfiguration,
+    NewLoadJob,
+    WithStagingDataset,
+    TLoadJobState,
+    LoadJob,
+    JobClientBase,
+    FollowupJob,
+    CredentialsConfiguration,
+)
 from dlt.common.utils import concat_strings_with_limit
-from dlt.destinations.exceptions import DatabaseUndefinedRelation, DestinationSchemaTampered, DestinationSchemaWillNotUpdate
+from dlt.destinations.exceptions import (
+    DatabaseUndefinedRelation,
+    DestinationSchemaTampered,
+    DestinationSchemaWillNotUpdate,
+)
 from dlt.destinations.job_impl import EmptyLoadJobWithoutFollowup, NewReferenceJob
 from dlt.destinations.sql_jobs import SqlMergeJob, SqlStagingCopyJob
 from dlt.common.schema.typing import LOADS_TABLE_NAME, VERSION_TABLE_NAME
@@ -35,12 +67,10 @@ class StorageSchemaInfo(NamedTuple):
     inserted_at: datetime.datetime
     schema: str
 
+
 # this should suffice for now
-DDL_COMMANDS = [
-    "ALTER",
-    "CREATE",
-    "DROP"
-]
+DDL_COMMANDS = ["ALTER", "CREATE", "DROP"]
+
 
 class SqlLoadJob(LoadJob):
     """A job executing sql statement, without followup trait"""
@@ -52,7 +82,10 @@ class SqlLoadJob(LoadJob):
             sql = f.read()
 
         # if we detect ddl transactions, only execute transaction if supported by client
-        if not self._string_containts_ddl_queries(sql) or sql_client.capabilities.supports_ddl_transactions:
+        if (
+            not self._string_containts_ddl_queries(sql)
+            or sql_client.capabilities.supports_ddl_transactions
+        ):
             # with sql_client.begin_transaction():
             sql_client.execute_sql(sql)
         else:
@@ -78,7 +111,13 @@ class SqlLoadJob(LoadJob):
 
 
 class CopyRemoteFileLoadJob(LoadJob, FollowupJob):
-    def __init__(self, table: TTableSchema, file_path: str, sql_client: SqlClientBase[Any], staging_credentials: Optional[CredentialsConfiguration] = None) -> None:
+    def __init__(
+        self,
+        table: TTableSchema,
+        file_path: str,
+        sql_client: SqlClientBase[Any],
+        staging_credentials: Optional[CredentialsConfiguration] = None,
+    ) -> None:
         super().__init__(FileStorage.get_file_name_from_file_path(file_path))
         self._sql_client = sql_client
         self._staging_credentials = staging_credentials
@@ -95,10 +134,16 @@ class CopyRemoteFileLoadJob(LoadJob, FollowupJob):
 
 
 class SqlJobClientBase(JobClientBase):
+    VERSION_TABLE_SCHEMA_COLUMNS: ClassVar[str] = (
+        "version_hash, schema_name, version, engine_version, inserted_at, schema"
+    )
 
-    VERSION_TABLE_SCHEMA_COLUMNS: ClassVar[str] = "version_hash, schema_name, version, engine_version, inserted_at, schema"
-
-    def __init__(self, schema: Schema, config: DestinationClientConfiguration,  sql_client: SqlClientBase[TNativeConn]) -> None:
+    def __init__(
+        self,
+        schema: Schema,
+        config: DestinationClientConfiguration,
+        sql_client: SqlClientBase[TNativeConn],
+    ) -> None:
         super().__init__(schema, config)
         self.sql_client = sql_client
         assert isinstance(config, DestinationClientDwhConfiguration)
@@ -115,17 +160,25 @@ class SqlJobClientBase(JobClientBase):
     def is_storage_initialized(self) -> bool:
         return self.sql_client.has_dataset()
 
-    def update_storage_schema(self, only_tables: Iterable[str] = None, expected_update: TSchemaTables = None) -> Optional[TSchemaTables]:
+    def update_storage_schema(
+        self, only_tables: Iterable[str] = None, expected_update: TSchemaTables = None
+    ) -> Optional[TSchemaTables]:
         super().update_storage_schema(only_tables, expected_update)
         applied_update: TSchemaTables = {}
         schema_info = self.get_schema_by_hash(self.schema.stored_version_hash)
         if schema_info is None:
-            logger.info(f"Schema with hash {self.schema.stored_version_hash} not found in the storage. upgrading")
+            logger.info(
+                f"Schema with hash {self.schema.stored_version_hash} not found in the storage."
+                " upgrading"
+            )
 
             with self.maybe_ddl_transaction():
                 applied_update = self._execute_schema_update_sql(only_tables)
         else:
-            logger.info(f"Schema with hash {self.schema.stored_version_hash} inserted at {schema_info.inserted_at} found in storage, no upgrade required")
+            logger.info(
+                f"Schema with hash {self.schema.stored_version_hash} inserted at"
+                f" {schema_info.inserted_at} found in storage, no upgrade required"
+            )
         return applied_update
 
     def drop_tables(self, *tables: str, replace_schema: bool = True) -> None:
@@ -161,13 +214,17 @@ class SqlJobClientBase(JobClientBase):
     def _create_optimized_replace_job(self, table_chain: Sequence[TTableSchema]) -> NewLoadJob:
         return self._create_staging_copy_job(table_chain)
 
-    def create_table_chain_completed_followup_jobs(self, table_chain: Sequence[TTableSchema]) -> List[NewLoadJob]:
+    def create_table_chain_completed_followup_jobs(
+        self, table_chain: Sequence[TTableSchema]
+    ) -> List[NewLoadJob]:
         jobs = super().create_table_chain_completed_followup_jobs(table_chain)
         """Creates a list of followup jobs that should be executed after a table chain is completed"""
         write_disposition = table_chain[0]["write_disposition"]
         if write_disposition == "merge":
             jobs.append(self._create_merge_job(table_chain))
-        elif write_disposition == "replace" and self.config.replace_strategy == "insert-from-staging":
+        elif (
+            write_disposition == "replace" and self.config.replace_strategy == "insert-from-staging"
+        ):
             jobs.append(self._create_staging_copy_job(table_chain))
         elif write_disposition == "replace" and self.config.replace_strategy == "staging-optimized":
             jobs.append(self._create_optimized_replace_job(table_chain))
@@ -200,19 +257,25 @@ class SqlJobClientBase(JobClientBase):
         name = self.sql_client.make_qualified_table_name(self.schema.loads_table_name)
         now_ts = pendulum.now()
         self.sql_client.execute_sql(
-            f"INSERT INTO {name}(load_id, schema_name, status, inserted_at, schema_version_hash) VALUES(%s, %s, %s, %s, %s);",
-            load_id, self.schema.name, 0, now_ts, self.schema.version_hash
+            f"INSERT INTO {name}(load_id, schema_name, status, inserted_at, schema_version_hash)"
+            " VALUES(%s, %s, %s, %s, %s);",
+            load_id,
+            self.schema.name,
+            0,
+            now_ts,
+            self.schema.version_hash,
         )
 
     def __enter__(self) -> "SqlJobClientBase":
         self.sql_client.open_connection()
         return self
 
-    def __exit__(self, exc_type: Type[BaseException], exc_val: BaseException, exc_tb: TracebackType) -> None:
+    def __exit__(
+        self, exc_type: Type[BaseException], exc_val: BaseException, exc_tb: TracebackType
+    ) -> None:
         self.sql_client.close_connection()
 
     def get_storage_table(self, table_name: str) -> Tuple[bool, TTableSchemaColumns]:
-
         def _null_to_bool(v: str) -> bool:
             if v == "NO":
                 return False
@@ -223,7 +286,9 @@ class SqlJobClientBase(JobClientBase):
         fields = ["column_name", "data_type", "is_nullable"]
         if self.capabilities.schema_supports_numeric_precision:
             fields += ["numeric_precision", "numeric_scale"]
-        db_params = self.sql_client.make_qualified_table_name(table_name, escape=False).split(".", 3)
+        db_params = self.sql_client.make_qualified_table_name(table_name, escape=False).split(
+            ".", 3
+        )
         query = f"""
 SELECT {",".join(fields)}
     FROM INFORMATION_SCHEMA.COLUMNS
@@ -240,7 +305,9 @@ WHERE """
             return False, schema_table
         # TODO: pull more data to infer indexes, PK and uniques attributes/constraints
         for c in rows:
-            numeric_precision = c[3] if self.capabilities.schema_supports_numeric_precision else None
+            numeric_precision = (
+                c[3] if self.capabilities.schema_supports_numeric_precision else None
+            )
             numeric_scale = c[4] if self.capabilities.schema_supports_numeric_precision else None
             schema_c: TColumnSchemaBase = {
                 "name": c[0],
@@ -257,12 +324,17 @@ WHERE """
 
     @classmethod
     @abstractmethod
-    def _from_db_type(cls, db_type: str, precision: Optional[int], scale: Optional[int]) -> TDataType:
+    def _from_db_type(
+        cls, db_type: str, precision: Optional[int], scale: Optional[int]
+    ) -> TDataType:
         pass
 
     def get_newest_schema_from_storage(self) -> StorageSchemaInfo:
         name = self.sql_client.make_qualified_table_name(self.schema.version_table_name)
-        query = f"SELECT {self.VERSION_TABLE_SCHEMA_COLUMNS} FROM {name} WHERE schema_name = %s ORDER BY inserted_at DESC;"
+        query = (
+            f"SELECT {self.VERSION_TABLE_SCHEMA_COLUMNS} FROM {name} WHERE schema_name = %s ORDER"
+            " BY inserted_at DESC;"
+        )
         return self._row_to_schema_info(query, self.schema.name)
 
     def get_schema_by_hash(self, version_hash: str) -> StorageSchemaInfo:
@@ -274,12 +346,16 @@ WHERE """
         sql_scripts, schema_update = self._build_schema_update_sql(only_tables)
         # stay within max query size when doing DDL. some db backends use bytes not characters so decrease limit by half
         # assuming that most of the characters in DDL encode into single bytes
-        for sql_fragment in concat_strings_with_limit(sql_scripts, "\n", self.capabilities.max_query_length // 2):
+        for sql_fragment in concat_strings_with_limit(
+            sql_scripts, "\n", self.capabilities.max_query_length // 2
+        ):
             self.sql_client.execute_sql(sql_fragment)
         self._update_schema_in_storage(self.schema)
         return schema_update
 
-    def _build_schema_update_sql(self, only_tables: Iterable[str]) -> Tuple[List[str], TSchemaTables]:
+    def _build_schema_update_sql(
+        self, only_tables: Iterable[str]
+    ) -> Tuple[List[str], TSchemaTables]:
         """Generates CREATE/ALTER sql for tables that differ between the destination and in client's Schema.
 
         This method compares all or `only_tables` defined in self.schema to the respective tables in the destination. It detects only new tables and new columns.
@@ -315,7 +391,9 @@ WHERE """
         """Make one or more  ADD COLUMN sql clauses to be joined in ALTER TABLE statement(s)"""
         return [f"ADD COLUMN {self._get_column_def_sql(c)}" for c in new_columns]
 
-    def _get_table_update_sql(self, table_name: str, new_columns: Sequence[TColumnSchema], generate_alter: bool) -> List[str]:
+    def _get_table_update_sql(
+        self, table_name: str, new_columns: Sequence[TColumnSchema], generate_alter: bool
+    ) -> List[str]:
         # build sql
         canonical_name = self.sql_client.make_qualified_table_name(table_name)
         sql_result: List[str] = []
@@ -333,15 +411,23 @@ WHERE """
                 sql_result.append(sql_base + column_sql.join(add_column_statements))
             else:
                 # build ALTER as separate statement for each column (redshift limitation)
-                sql_result.extend([sql_base + col_statement for col_statement in add_column_statements])
+                sql_result.extend(
+                    [sql_base + col_statement for col_statement in add_column_statements]
+                )
 
         # scan columns to get hints
         if generate_alter:
             # no hints may be specified on added columns
             for hint in COLUMN_HINTS:
                 if any(c.get(hint, False) is True for c in new_columns):
-                    hint_columns = [self.capabilities.escape_identifier(c["name"]) for c in new_columns if c.get(hint, False)]
-                    raise DestinationSchemaWillNotUpdate(canonical_name, hint_columns, f"{hint} requested after table was created")
+                    hint_columns = [
+                        self.capabilities.escape_identifier(c["name"])
+                        for c in new_columns
+                        if c.get(hint, False)
+                    ]
+                    raise DestinationSchemaWillNotUpdate(
+                        canonical_name, hint_columns, f"{hint} requested after table was created"
+                    )
         return sql_result
 
     @abstractmethod
@@ -352,14 +438,16 @@ WHERE """
     def _gen_not_null(v: bool) -> str:
         return "NOT NULL" if not v else ""
 
-    def _create_table_update(self, table_name: str, storage_columns: TTableSchemaColumns) -> Sequence[TColumnSchema]:
+    def _create_table_update(
+        self, table_name: str, storage_columns: TTableSchemaColumns
+    ) -> Sequence[TColumnSchema]:
         # compare table with stored schema and produce delta
         updates = self.schema.get_new_table_columns(table_name, storage_columns)
         logger.info(f"Found {len(updates)} updates for {table_name} in {self.schema.name}")
         return updates
 
     def _row_to_schema_info(self, query: str, *args: Any) -> StorageSchemaInfo:
-        row: Tuple[Any,...] = None
+        row: Tuple[Any, ...] = None
         # if there's no dataset/schema return none info
         with contextlib.suppress(DatabaseUndefinedRelation):
             with self.sql_client.execute_query(query, *args) as cur:
@@ -387,9 +475,7 @@ WHERE """
         Save the given schema in storage and remove all previous versions with the same name
         """
         name = self.sql_client.make_qualified_table_name(self.schema.version_table_name)
-        self.sql_client.execute_sql(
-            f"DELETE FROM {name} WHERE schema_name = %s;", schema.name
-        )
+        self.sql_client.execute_sql(f"DELETE FROM {name} WHERE schema_name = %s;", schema.name)
         self._update_schema_in_storage(schema)
 
     def _update_schema_in_storage(self, schema: Schema) -> None:
@@ -411,13 +497,20 @@ WHERE """
         name = self.sql_client.make_qualified_table_name(self.schema.version_table_name)
         # values =  schema.version_hash, schema.name, schema.version, schema.ENGINE_VERSION, str(now_ts), schema_str
         self.sql_client.execute_sql(
-            f"INSERT INTO {name}({self.VERSION_TABLE_SCHEMA_COLUMNS}) VALUES (%s, %s, %s, %s, %s, %s);", schema.stored_version_hash, schema.name, schema.version, schema.ENGINE_VERSION, now_ts, schema_str
+            f"INSERT INTO {name}({self.VERSION_TABLE_SCHEMA_COLUMNS}) VALUES (%s, %s, %s, %s, %s,"
+            " %s);",
+            schema.stored_version_hash,
+            schema.name,
+            schema.version,
+            schema.ENGINE_VERSION,
+            now_ts,
+            schema_str,
         )
 
 
 class SqlJobClientWithStaging(SqlJobClientBase, WithStagingDataset):
     @contextlib.contextmanager
-    def with_staging_dataset(self)-> Iterator["SqlJobClientBase"]:
+    def with_staging_dataset(self) -> Iterator["SqlJobClientBase"]:
         with self.sql_client.with_staging_dataset(True):
             yield self
 

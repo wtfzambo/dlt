@@ -19,10 +19,10 @@ class SupportsJson(Protocol):
     _impl_name: str
     """Implementation name"""
 
-    def dump(self, obj: Any, fp: IO[bytes], sort_keys: bool = False, pretty:bool = False) -> None:
+    def dump(self, obj: Any, fp: IO[bytes], sort_keys: bool = False, pretty: bool = False) -> None:
         ...
 
-    def typed_dump(self, obj: Any, fp: IO[bytes], pretty:bool = False) -> None:
+    def typed_dump(self, obj: Any, fp: IO[bytes], pretty: bool = False) -> None:
         ...
 
     def typed_dumps(self, obj: Any, sort_keys: bool = False, pretty: bool = False) -> str:
@@ -37,10 +37,10 @@ class SupportsJson(Protocol):
     def typed_loadb(self, s: Union[bytes, bytearray, memoryview]) -> Any:
         ...
 
-    def dumps(self, obj: Any, sort_keys: bool = False, pretty:bool = False) -> str:
+    def dumps(self, obj: Any, sort_keys: bool = False, pretty: bool = False) -> str:
         ...
 
-    def dumpb(self, obj: Any, sort_keys: bool = False, pretty:bool = False) -> bytes:
+    def dumpb(self, obj: Any, sort_keys: bool = False, pretty: bool = False) -> bytes:
         ...
 
     def load(self, fp: IO[bytes]) -> Any:
@@ -64,8 +64,8 @@ def custom_encode(obj: Any) -> str:
         # leave microseconds alone
         # if obj.microsecond:
         #     r = r[:23] + r[26:]
-        if r.endswith('+00:00'):
-            r = r[:-6] + 'Z'
+        if r.endswith("+00:00"):
+            r = r[:-6] + "Z"
         return r
     elif isinstance(obj, date):
         return obj.isoformat()
@@ -74,10 +74,10 @@ def custom_encode(obj: Any) -> str:
     elif isinstance(obj, HexBytes):
         return obj.hex()
     elif isinstance(obj, bytes):
-        return base64.b64encode(obj).decode('ascii')
-    elif hasattr(obj, 'asdict'):
+        return base64.b64encode(obj).decode("ascii")
+    elif hasattr(obj, "asdict"):
         return obj.asdict()  # type: ignore
-    elif hasattr(obj, '_asdict'):
+    elif hasattr(obj, "_asdict"):
         return obj._asdict()  # type: ignore
     elif dataclasses.is_dataclass(obj):
         return dataclasses.asdict(obj)  # type: ignore
@@ -85,13 +85,13 @@ def custom_encode(obj: Any) -> str:
 
 
 # use PUA range to encode additional types
-_DECIMAL = '\uF026'
-_DATETIME = '\uF027'
-_DATE = '\uF028'
-_UUIDT = '\uF029'
-_HEXBYTES = '\uF02A'
-_B64BYTES = '\uF02B'
-_WEI = '\uF02C'
+_DECIMAL = "\uf026"
+_DATETIME = "\uf027"
+_DATE = "\uf028"
+_UUIDT = "\uf029"
+_HEXBYTES = "\uf02a"
+_B64BYTES = "\uf02b"
+_WEI = "\uf02c"
 
 DECODERS: List[Callable[[Any], Any]] = [
     Decimal,
@@ -100,7 +100,7 @@ DECODERS: List[Callable[[Any], Any]] = [
     UUID,
     HexBytes,
     base64.b64decode,
-    Wei
+    Wei,
 ]
 
 
@@ -113,8 +113,8 @@ def custom_pua_encode(obj: Any) -> str:
     # this works both for standard datetime and pendulum
     elif isinstance(obj, datetime):
         r = obj.isoformat()
-        if r.endswith('+00:00'):
-            r = r[:-6] + 'Z'
+        if r.endswith("+00:00"):
+            r = r[:-6] + "Z"
         return _DATETIME + r
     elif isinstance(obj, date):
         return _DATE + obj.isoformat()
@@ -123,10 +123,10 @@ def custom_pua_encode(obj: Any) -> str:
     elif isinstance(obj, HexBytes):
         return _HEXBYTES + obj.hex()
     elif isinstance(obj, bytes):
-        return _B64BYTES + base64.b64encode(obj).decode('ascii')
-    elif hasattr(obj, 'asdict'):
+        return _B64BYTES + base64.b64encode(obj).decode("ascii")
+    elif hasattr(obj, "asdict"):
         return obj.asdict()  # type: ignore
-    elif hasattr(obj, '_asdict'):
+    elif hasattr(obj, "_asdict"):
         return obj._asdict()  # type: ignore
     elif dataclasses.is_dataclass(obj):
         return dataclasses.asdict(obj)  # type: ignore
@@ -137,7 +137,7 @@ def custom_pua_decode(obj: Any) -> Any:
     if isinstance(obj, str) and len(obj) > 1:
         c = ord(obj[0]) - 0xF026
         # decode only the PUA space defined in DECODERS
-        if c >=0 and c <= 6:
+        if c >= 0 and c <= 6:
             return DECODERS[c](obj[1:])
     return obj
 
@@ -155,7 +155,7 @@ def custom_pua_remove(obj: Any) -> Any:
     if isinstance(obj, str) and len(obj) > 1:
         c = ord(obj[0]) - 0xF026
         # decode only the PUA space defined in DECODERS
-        if c >=0 and c <= 6:
+        if c >= 0 and c <= 6:
             return obj[1:]
     return obj
 
@@ -164,11 +164,14 @@ def custom_pua_remove(obj: Any) -> Any:
 json: SupportsJson = None
 if os.environ.get("DLT_USE_JSON") == "simplejson":
     from dlt.common.json import _simplejson as _json_d
+
     json = _json_d
 else:
     try:
         from dlt.common.json import _orjson as _json_or
+
         json = _json_or
     except ImportError:
         from dlt.common.json import _simplejson as _json_simple
+
         json = _json_simple

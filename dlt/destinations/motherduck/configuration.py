@@ -35,7 +35,10 @@ class MotherDuckCredentials(DuckDbBaseCredentials):
     def on_resolved(self) -> None:
         self._token_to_password()
         if self.drivername == MOTHERDUCK_DRIVERNAME and not self.password:
-            raise ConfigurationValueError("Motherduck schema 'md' was specified without corresponding token or password. The required format of connection string is: md:///<database_name>?token=<token>")
+            raise ConfigurationValueError(
+                "Motherduck schema 'md' was specified without corresponding token or password. The"
+                " required format of connection string is: md:///<database_name>?token=<token>"
+            )
 
 
 @configspec
@@ -43,7 +46,9 @@ class MotherDuckClientConfiguration(DestinationClientDwhWithStagingConfiguration
     destination_name: Final[str] = "motherduck"  # type: ignore
     credentials: MotherDuckCredentials
 
-    create_indexes: bool = False  # should unique indexes be created, this slows loading down massively
+    create_indexes: bool = (
+        False  # should unique indexes be created, this slows loading down massively
+    )
 
     def fingerprint(self) -> str:
         """Returns a fingerprint of user access token"""

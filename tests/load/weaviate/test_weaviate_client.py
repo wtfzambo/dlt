@@ -12,11 +12,18 @@ from dlt.destinations.weaviate.weaviate_client import WeaviateClient
 
 from dlt.common.storages.file_storage import FileStorage
 from dlt.common.schema.utils import new_table
-from tests.load.utils import TABLE_ROW_ALL_DATA_TYPES, TABLE_UPDATE, TABLE_UPDATE_COLUMNS_SCHEMA, expect_load_file, write_dataset
+from tests.load.utils import (
+    TABLE_ROW_ALL_DATA_TYPES,
+    TABLE_UPDATE,
+    TABLE_UPDATE_COLUMNS_SCHEMA,
+    expect_load_file,
+    write_dataset,
+)
 
 from tests.utils import TEST_STORAGE_ROOT
 
 from .utils import drop_active_pipeline_data
+
 
 @pytest.fixture(autouse=True)
 def drop_weaviate_schema() -> None:
@@ -27,16 +34,13 @@ def drop_weaviate_schema() -> None:
 def get_client_instance(schema: Schema) -> WeaviateClient:
     config = weaviate.spec()()
     config.dataset_name = "ClientTest" + uniq_id()
-    with Container().injectable_context(ConfigSectionContext(sections=('destination', 'weaviate'))):
+    with Container().injectable_context(ConfigSectionContext(sections=("destination", "weaviate"))):
         return weaviate.client(schema, config)  # type: ignore[return-value]
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def client() -> Iterator[WeaviateClient]:
-    schema = Schema('test_schema', {
-        'names': "dlt.destinations.weaviate.naming",
-        'json': None
-    })
+    schema = Schema("test_schema", {"names": "dlt.destinations.weaviate.naming", "json": None})
     _client = get_client_instance(schema)
     try:
         yield _client
@@ -49,11 +53,15 @@ def file_storage() -> FileStorage:
     return FileStorage(TEST_STORAGE_ROOT, file_type="b", makedirs=True)
 
 
-@pytest.mark.parametrize('write_disposition', ["append", "replace", "merge"])
-def test_all_data_types(client: WeaviateClient, write_disposition: str, file_storage: FileStorage) -> None:
+@pytest.mark.parametrize("write_disposition", ["append", "replace", "merge"])
+def test_all_data_types(
+    client: WeaviateClient, write_disposition: str, file_storage: FileStorage
+) -> None:
     class_name = "AllTypes"
     # we should have identical content with all disposition types
-    client.schema.update_schema(new_table(class_name, write_disposition=write_disposition, columns=TABLE_UPDATE))
+    client.schema.update_schema(
+        new_table(class_name, write_disposition=write_disposition, columns=TABLE_UPDATE)
+    )
     client.schema.bump_version()
     client.update_storage_schema()
 

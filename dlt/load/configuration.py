@@ -17,11 +17,12 @@ class LoaderConfiguration(PoolRunnerConfiguration):
     _load_storage_config: LoadStorageConfiguration = None
 
     if TYPE_CHECKING:
+
         def __init__(
             self,
             pool_type: TPoolType = "thread",
             workers: int = None,
             raise_on_failed_jobs: bool = False,
-            _load_storage_config: LoadStorageConfiguration = None
+            _load_storage_config: LoadStorageConfiguration = None,
         ) -> None:
             ...
