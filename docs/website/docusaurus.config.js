@@ -35,7 +35,7 @@ const config = {
       {
         origins: [
           {
-            files: ['../snippets/*.py'],
+            files: ['../snippets/**/*.py'],
           },
         ],
         targets: ['docs'],
