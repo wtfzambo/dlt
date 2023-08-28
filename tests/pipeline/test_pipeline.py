@@ -1,3 +1,4 @@
+import itertools
 import logging
 import os
 import random
@@ -13,9 +14,8 @@ from dlt.common.destination import DestinationCapabilitiesContext
 from dlt.common.exceptions import DestinationHasFailedJobs, DestinationTerminalException, PipelineStateNotAvailable, UnknownDestinationModule
 from dlt.common.pipeline import PipelineContext
 from dlt.common.runtime.collector import AliveCollector, EnlightenCollector, LogCollector, TqdmCollector
-from dlt.common.schema.exceptions import InvalidDatasetName
 from dlt.common.utils import uniq_id
-from dlt.extract.exceptions import SourceExhausted
+from dlt.extract.exceptions import InvalidResourceDataTypeBasic, PipeGenInvalid, SourceExhausted
 from dlt.extract.extract import ExtractorStorage
 from dlt.extract.source import DltResource, DltSource
 from dlt.load.exceptions import LoadClientJobFailed
@@ -29,7 +29,7 @@ from tests.common.utils import TEST_SENTRY_DSN
 
 from tests.load.pipeline.utils import destinations_configs, DestinationTestConfiguration
 
-from tests.utils import ALL_DESTINATIONS, TEST_STORAGE_ROOT
+from tests.utils import TEST_STORAGE_ROOT
 from tests.common.configuration.utils import environment
 from tests.extract.utils import expect_extracted_file
 from tests.pipeline.utils import assert_load_info, airtable_emojis
@@ -187,12 +187,13 @@ def test_deterministic_salt(environment) -> None:
     assert p.pipeline_salt != p3.pipeline_salt
 
 
-@pytest.mark.parametrize("destination_config", destinations_configs(default_configs=True), ids=lambda x: x.name)
+@pytest.mark.parametrize("destination_config", destinations_configs(default_sql_configs=True), ids=lambda x: x.name)
 def test_create_pipeline_all_destinations(destination_config: DestinationTestConfiguration) -> None:
     # create pipelines, extract and normalize. that should be possible without installing any dependencies
     p = dlt.pipeline(pipeline_name=destination_config.destination + "_pipeline", destination=destination_config.destination, staging=destination_config.staging)
     # are capabilities injected
     caps = p._container[DestinationCapabilitiesContext]
+    print(caps.naming_convention)
     # are right naming conventions created
     assert p._default_naming.max_length == min(caps.max_column_identifier_length, caps.max_identifier_length)
     p.extract([1, "2", 3], table_name="data")
@@ -964,3 +965,48 @@ def test_emojis_resource_names() -> None:
     assert_load_info(info)
     table = info.load_packages[0].schema_update["_wide_peacock"]
     assert table["resource"] == "🦚WidePeacock"
+
+
+def test_invalid_data_edge_cases() -> None:
+    # pass not evaluated source function
+    @dlt.source
+    def my_source():
+        return dlt.resource(itertools.count(start=1), name="infinity").add_limit(5)
+
+    pipeline = dlt.pipeline(pipeline_name="invalid", destination="dummy")
+    with pytest.raises(PipelineStepFailed) as pip_ex:
+        pipeline.run(my_source)
+    assert isinstance(pip_ex.value.__context__, PipeGenInvalid)
+    assert "dlt.source" in str(pip_ex.value)
+
+    def res_return():
+        return dlt.resource(itertools.count(start=1), name="infinity").add_limit(5)
+
+    with pytest.raises(PipelineStepFailed) as pip_ex:
+        pipeline.run(res_return)
+    assert isinstance(pip_ex.value.__context__, PipeGenInvalid)
+    assert "dlt.resource" in str(pip_ex.value)
+
+    with pytest.raises(PipelineStepFailed) as pip_ex:
+        pipeline.run({"a": "b"}, table_name="data")
+    assert isinstance(pip_ex.value.__context__, InvalidResourceDataTypeBasic)
+
+    # check same cases but that yield
+    @dlt.source
+    def my_source_yield():
+        yield dlt.resource(itertools.count(start=1), name="infinity").add_limit(5)
+
+    pipeline = dlt.pipeline(pipeline_name="invalid", destination="dummy")
+    with pytest.raises(PipelineStepFailed) as pip_ex:
+        pipeline.run(my_source_yield)
+    assert isinstance(pip_ex.value.__context__, PipeGenInvalid)
+    assert "dlt.source" in str(pip_ex.value)
+
+    def res_return_yield():
+        return dlt.resource(itertools.count(start=1), name="infinity").add_limit(5)
+
+    with pytest.raises(PipelineStepFailed) as pip_ex:
+        pipeline.run(res_return_yield)
+    assert isinstance(pip_ex.value.__context__, PipeGenInvalid)
+    assert "dlt.resource" in str(pip_ex.value)
+

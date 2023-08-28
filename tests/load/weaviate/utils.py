@@ -1,6 +1,11 @@
 import dlt
 from typing import Any, List
 
+import dlt
+from dlt.common.pipeline import PipelineContext
+from dlt.common.configuration.container import Container
+from dlt.common.schema.utils import get_columns_names_with_prop
+
 from dlt.destinations.weaviate.weaviate_client import WeaviateClient
 from dlt.destinations.weaviate.weaviate_adapter import VECTORIZE_HINT, TOKENIZATION_HINT
 
@@ -18,6 +23,7 @@ def assert_class(
     items: List[Any] = None,
 ) -> None:
     client: WeaviateClient = pipeline._destination_client()
+    vectorizer_name: str = client._vectorizer_config["vectorizer"]
 
     # Check if class exists
     schema = client.get_class_schema(class_name)
@@ -31,13 +37,18 @@ def assert_class(
     # make sure expected columns are vectorized
     for column_name, column in columns.items():
         prop = properties[column_name]
-        # text2vec-openai is the default
-        assert prop["moduleConfig"]["text2vec-openai"]["skip"] == (
+        assert prop["moduleConfig"][vectorizer_name]["skip"] == (
             not column.get(VECTORIZE_HINT, False)
         )
         # tokenization
         if TOKENIZATION_HINT in column:
             assert prop["tokenization"] == column[TOKENIZATION_HINT]
+
+    # if there's a single vectorize hint, class must have vectorizer enabled
+    if get_columns_names_with_prop(pipeline.default_schema.get_table(class_name), VECTORIZE_HINT):
+        assert schema["vectorizer"] == vectorizer_name
+    else:
+        assert schema["vectorizer"] == "none"
 
     # response = db_client.query.get(class_name, list(properties.keys())).do()
     response = client.query_class(class_name, list(properties.keys())).do()
@@ -64,3 +75,20 @@ def delete_classes(p, class_list):
     db_client = p._destination_client().db_client
     for class_name in class_list:
         db_client.schema.delete_class(class_name)
+
+def drop_active_pipeline_data() -> None:
+    def schema_has_classes(client):
+        schema = client.db_client.schema.get()
+        return schema["classes"]
+
+    if Container()[PipelineContext].is_active():
+        # take existing pipeline
+        p = dlt.pipeline()
+        client = p._destination_client()
+
+        if schema_has_classes(client):
+            client.drop_dataset()
+
+        p._wipe_working_folder()
+        # deactivate context
+        Container()[PipelineContext].deactivate()
