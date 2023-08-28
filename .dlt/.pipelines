@@ -1,0 +1,23 @@
+engine_version: 1
+pipelines:
+  chess:
+    is_dirty: false
+    last_commit_sha: 6792c713c2a0343e468f89792a58850195bf9528
+    last_commit_timestamp: '2023-06-05T14:09:46+02:00'
+    files:
+      chess/__init__.py:
+        commit_sha: 6792c713c2a0343e468f89792a58850195bf9528
+        git_sha: 66ccbbdf9e59e8bcb0b932a80eb033a298c3e9f5
+        sha3_256: fe7d5923ae62f7bba3b6aa0447af9f7c187f719636e62410d3d0c0c193abed26
+      chess/README.md:
+        commit_sha: 6792c713c2a0343e468f89792a58850195bf9528
+        git_sha: 4d2c6988018890d8834b32874887f59d3c4ef4a1
+        sha3_256: 7c0de2dd5788615f1a18f5b1018ad0013070b82204a780becb8706869447a1c8
+      chess/settings.py:
+        commit_sha: 6792c713c2a0343e468f89792a58850195bf9528
+        git_sha: e7c335449972e4e4de5ee1035114571f135fd9cf
+        sha3_256: 01728e594272c541af519f58ebb3ef1b13bcd9253fafc8cfdea532449f96d017
+      chess/helpers.py:
+        commit_sha: 6792c713c2a0343e468f89792a58850195bf9528
+        git_sha: c607c5172afbf52578ec1563cc5eb45f4c209cfd
+        sha3_256: ed62520d9d09960ce88719306d5f080876435b6425808c5587a6078eaa093538

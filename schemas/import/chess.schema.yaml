@@ -1,0 +1,217 @@
+version: 4
+version_hash: g+cn8CnyAaoquAnZDAl2vBBdfLkKFnbK6OYtxUApiCA=
+engine_version: 6
+name: chess
+tables:
+  _dlt_version:
+    columns:
+      version:
+        nullable: false
+        data_type: bigint
+      engine_version:
+        nullable: false
+        data_type: bigint
+      inserted_at:
+        nullable: false
+        data_type: timestamp
+      schema_name:
+        nullable: false
+        data_type: text
+      version_hash:
+        nullable: false
+        data_type: text
+      schema:
+        nullable: false
+        data_type: text
+    write_disposition: skip
+    description: Created by DLT. Tracks schema updates
+  _dlt_loads:
+    columns:
+      load_id:
+        nullable: false
+        data_type: text
+      schema_name:
+        nullable: true
+        data_type: text
+      status:
+        nullable: false
+        data_type: bigint
+      inserted_at:
+        nullable: false
+        data_type: timestamp
+      schema_version_hash:
+        nullable: true
+        data_type: text
+    write_disposition: skip
+    description: Created by DLT. Tracks completed loads
+  players_profiles:
+    columns:
+      avatar:
+        nullable: true
+        data_type: text
+      player_id:
+        nullable: true
+        data_type: bigint
+      aid:
+        nullable: true
+        data_type: text
+      url:
+        nullable: true
+        data_type: text
+      name:
+        nullable: true
+        data_type: text
+      username:
+        nullable: true
+        data_type: text
+      title:
+        nullable: true
+        data_type: text
+      followers:
+        nullable: true
+        data_type: bigint
+      country:
+        nullable: true
+        data_type: text
+      location:
+        nullable: true
+        data_type: text
+      last_online:
+        nullable: true
+        data_type: timestamp
+      joined:
+        nullable: true
+        data_type: bigint
+      status:
+        nullable: true
+        data_type: text
+      is_streamer:
+        nullable: true
+        data_type: bool
+      verified:
+        nullable: true
+        data_type: bool
+      league:
+        nullable: true
+        data_type: text
+      _dlt_load_id:
+        nullable: false
+        data_type: text
+      _dlt_id:
+        nullable: false
+        unique: true
+        data_type: text
+    write_disposition: replace
+  players_games:
+    columns:
+      url:
+        nullable: true
+        data_type: text
+      end_time:
+        nullable: true
+        data_type: timestamp
+      rated:
+        nullable: true
+        data_type: bool
+      accuracies__white:
+        nullable: true
+        data_type: double
+      accuracies__black:
+        nullable: true
+        data_type: double
+      tcn:
+        nullable: true
+        data_type: text
+      uuid:
+        nullable: true
+        data_type: text
+      initial_setup:
+        nullable: true
+        data_type: text
+      fen:
+        nullable: true
+        data_type: text
+      time_class:
+        nullable: true
+        data_type: text
+      rules:
+        nullable: true
+        data_type: text
+      white__rating:
+        nullable: true
+        data_type: bigint
+      white__result:
+        nullable: true
+        data_type: text
+      white__aid:
+        nullable: true
+        data_type: text
+      white__username:
+        nullable: true
+        data_type: text
+      white__uuid:
+        nullable: true
+        data_type: text
+      black__rating:
+        nullable: true
+        data_type: bigint
+      black__result:
+        nullable: true
+        data_type: text
+      _dlt_load_id:
+        nullable: false
+        data_type: text
+      _dlt_id:
+        nullable: false
+        unique: true
+        data_type: text
+      tournament:
+        nullable: true
+        data_type: text
+    write_disposition: append
+  _dlt_pipeline_state:
+    columns:
+      version:
+        nullable: false
+        data_type: bigint
+      engine_version:
+        nullable: false
+        data_type: bigint
+      pipeline_name:
+        nullable: false
+        data_type: text
+      state:
+        nullable: false
+        data_type: text
+      created_at:
+        nullable: false
+        data_type: timestamp
+      _dlt_load_id:
+        nullable: false
+        data_type: text
+      _dlt_id:
+        nullable: false
+        unique: true
+        data_type: text
+    write_disposition: append
+settings:
+  detections:
+  - timestamp
+  - iso_timestamp
+  default_hints:
+    not_null:
+    - _dlt_root_id
+    - _dlt_parent_id
+    - _dlt_load_id
+    - _dlt_id
+    - _dlt_list_idx
+    foreign_key:
+    - _dlt_parent_id
+    root_key:
+    - _dlt_root_id
+    unique:
+    - _dlt_id
+normalizers:
+  names: duck_case
+  json:
+    module: dlt.common.normalizers.json.relational
